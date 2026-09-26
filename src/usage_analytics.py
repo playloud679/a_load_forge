@@ -21,6 +21,7 @@ See docs/usage_analytics.md.
 
 from __future__ import annotations
 
+import os
 from collections import Counter
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
@@ -39,6 +40,7 @@ EVENTS = frozenset({
 })
 
 EVENTS_COLLECTION = "usage_events"
+PORTAL_COLLECTION = "growth_telemetry"  # written by load_forge_deploy (portal)
 SETTINGS_COLLECTION = "analytics_settings"
 EXCLUSIONS_DOCUMENT = "exclusions"
 _MAX_PROP_LEN = 120
@@ -76,6 +78,8 @@ def build_event(
 class UsageStore(Protocol):
     def append(self, event: Mapping[str, Any]) -> None: ...
     def list_events(self, since: datetime | None = None) -> list[dict[str, Any]]: ...
+    def recent_events(self, limit: int) -> list[dict[str, Any]]: ...
+    def recent_portal_events(self, limit: int) -> list[dict[str, Any]]: ...
     def excluded_emails(self) -> frozenset[str]: ...
     def set_excluded(self, email: str, excluded: bool) -> None: ...
 
@@ -85,6 +89,7 @@ class InMemoryUsageStore:
 
     def __init__(self) -> None:
         self._events: list[dict[str, Any]] = []
+        self._portal_events: list[dict[str, Any]] = []
         self._excluded: set[str] = set()
 
     def append(self, event: Mapping[str, Any]) -> None:
@@ -93,6 +98,12 @@ class InMemoryUsageStore:
     def list_events(self, since: datetime | None = None) -> list[dict[str, Any]]:
         cutoff = since.isoformat() if since else ""
         return [dict(e) for e in self._events if e.get("ts", "") >= cutoff]
+
+    def recent_events(self, limit: int) -> list[dict[str, Any]]:
+        return sorted(self._events, key=lambda e: e.get("ts", ""), reverse=True)[:limit]
+
+    def recent_portal_events(self, limit: int) -> list[dict[str, Any]]:
+        return sorted(self._portal_events, key=lambda e: e.get("timestamp", ""), reverse=True)[:limit]
 
     def excluded_emails(self) -> frozenset[str]:
         return frozenset(self._excluded)
@@ -108,12 +119,23 @@ class InMemoryUsageStore:
 class FirestoreUsageStore:
     """Firestore store in the private database (same one as user accounts)."""
 
-    def __init__(self, *, project: str | None = None, database: str = "(default)", client: Any = None) -> None:
-        if client is None:
+    def __init__(
+        self,
+        *,
+        project: str | None = None,
+        database: str = "(default)",
+        portal_database: str = "(default)",
+        client: Any = None,
+        portal_client: Any = None,
+    ) -> None:
+        if client is None or (portal_client is None and portal_database != database):
             from google.cloud import firestore
 
-            client = firestore.Client(project=project, database=database)
+            client = client or firestore.Client(project=project, database=database)
+            if portal_client is None and portal_database != database:
+                portal_client = firestore.Client(project=project, database=portal_database)
         self._client = client
+        self._portal_client = portal_client or client
 
     def append(self, event: Mapping[str, Any]) -> None:
         self._client.collection(EVENTS_COLLECTION).document().set(dict(event))
@@ -123,6 +145,18 @@ class FirestoreUsageStore:
         if since is not None:
             query = query.where("ts", ">=", since.isoformat())
         return [snap.to_dict() for snap in query.stream()]
+
+    def _recent(self, client: Any, collection: str, field: str, limit: int) -> list[dict[str, Any]]:
+        from google.cloud import firestore
+
+        query = client.collection(collection).order_by(field, direction=firestore.Query.DESCENDING).limit(limit)
+        return [snap.to_dict() for snap in query.stream()]
+
+    def recent_events(self, limit: int) -> list[dict[str, Any]]:
+        return self._recent(self._client, EVENTS_COLLECTION, "ts", limit)
+
+    def recent_portal_events(self, limit: int) -> list[dict[str, Any]]:
+        return self._recent(self._portal_client, PORTAL_COLLECTION, "timestamp", limit)
 
     def _exclusions_ref(self):
         return self._client.collection(SETTINGS_COLLECTION).document(EXCLUSIONS_DOCUMENT)
@@ -150,6 +184,8 @@ def create_usage_store(settings: Any) -> UsageStore:
     return FirestoreUsageStore(
         project=getattr(settings, "gcp_project", None) or None,
         database=getattr(settings, "firestore_private_db", "(default)"),
+        # Same variable the portal uses to pick its growth database.
+        portal_database=os.getenv("LOAD_FORGE_GROWTH_DATABASE", "(default)"),
     )
 
 
@@ -288,3 +324,96 @@ def traction_report(
         users=users,
         excluded_accounts=len(internal_emails),
     )
+
+
+# --- Live feed (LLOOGG-style raw stream) ------------------------------------
+
+# Portal events that are infrastructure, not visitors.
+_PORTAL_NOISE = frozenset({"deployment_verified"})
+
+
+@dataclass(frozen=True)
+class LiveRow:
+    ts: str
+    source: str        # "portal" | "studio"
+    visitor: str       # email when known, else the anonymous id
+    event: str
+    detail: str
+    referrer: str
+
+
+def _portal_props(event: Mapping[str, Any]) -> dict[str, Any]:
+    props = event.get("properties")
+    return props if isinstance(props, dict) else {}
+
+
+def _referrer_host(value: str) -> str:
+    from urllib.parse import urlparse
+
+    return urlparse(value).netloc if value else ""
+
+
+def live_feed(
+    portal_events: Iterable[Mapping[str, Any]],
+    app_events: Iterable[Mapping[str, Any]],
+    accounts: Iterable[Any],
+    excluded_emails: frozenset[str] = frozenset(),
+    limit: int = 100,
+) -> list[LiveRow]:
+    """Merge portal and Studio events newest-first, internal traffic removed.
+
+    Anonymous portal ids are resolved to an email once the same id appears on
+    a signed-in Studio event, so a visitor's whole path reads as one person.
+    Dropped: portal events tagged ``internal``, deploy checks, and anything
+    from admin/test accounts or their anonymous ids.
+    """
+    app_events = [dict(e) for e in app_events]
+    internal = {e.casefold() for e in excluded_emails}
+    internal |= {str(a.email).casefold() for a in accounts if a.is_admin}
+    anon_to_email: dict[str, str] = {}
+    for e in app_events:
+        if e.get("anon_id") and e.get("email"):
+            anon_to_email.setdefault(e["anon_id"], e["email"].casefold())
+    internal_anon = {anon for anon, email in anon_to_email.items() if email in internal}
+
+    rows: list[LiveRow] = []
+    for e in portal_events:
+        anon = str(e.get("anon_uid") or "")
+        props = _portal_props(e)
+        if e.get("event") in _PORTAL_NOISE or props.get("internal") or anon in internal_anon:
+            continue
+        detail = str(e.get("path") or "")
+        extra = props.get("driver") or props.get("view") or props.get("cta") or ""
+        rows.append(LiveRow(
+            ts=_normalize_ts(str(e.get("timestamp") or "")),
+            source="portal",
+            visitor=anon_to_email.get(anon, anon),
+            event=str(e.get("event") or ""),
+            detail=f"{detail} · {extra}" if extra and extra not in detail else detail,
+            referrer=_referrer_host(str(e.get("referrer") or "")),
+        ))
+    for e in app_events:
+        email = (e.get("email") or "").casefold()
+        anon = str(e.get("anon_id") or "")
+        if email in internal or anon in internal_anon:
+            continue
+        props = e.get("props") or {}
+        detail = " · ".join(str(v) for k, v in props.items() if k != "interactive" and v not in ("", None))
+        if props.get("interactive") is False:
+            detail = f"{detail} (default render)"
+        rows.append(LiveRow(
+            ts=_normalize_ts(str(e.get("ts") or "")),
+            source="studio",
+            visitor=email or anon_to_email.get(anon, anon),
+            event=str(e.get("event") or ""),
+            detail=detail,
+            referrer="",
+        ))
+    rows.sort(key=lambda r: r.ts, reverse=True)
+    return rows[:limit]
+
+
+def _normalize_ts(value: str) -> str:
+    """Portal uses ``...Z``, the Studio ``+00:00``; compare them as UTC."""
+    parsed = _parse_ts(value.replace("Z", "+00:00")) if value else None
+    return parsed.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S") if parsed else value

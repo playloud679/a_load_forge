@@ -127,3 +127,53 @@ def check_admin_console_requires_admin():
         assert not at.exception, at.exception
         assert any("restricted to the administrator" in e.value for e in at.error)
         assert not at.tabs, "Non-admins must not see the traction/accounts tabs"
+
+
+def _portal(event, anon, ts, path="/", referrer="", **props):
+    return {"event": event, "anon_uid": anon, "timestamp": ts, "path": path,
+            "referrer": referrer, "properties": props}
+
+
+def check_live_feed_merges_and_filters():
+    accounts = [_acc("admin@x.com", admin=True), _acc("peter@x.com"), _acc("tester@x.com")]
+    portal = [
+        _portal("driver_page_view", "u_peter", "2026-09-20T12:00:00.000Z",
+                "/drivers/sb-10", "https://www.google.com/search?q=x"),
+        _portal("app_open_clicked", "u_peter", "2026-09-20T12:01:00.000Z", view="box-design"),
+        _portal("landing_view", "u_me", "2026-09-20T12:02:00.000Z", internal=True),
+        _portal("deployment_verified", "u_ci", "2026-09-20T12:03:00.000Z"),
+        _portal("landing_view", "u_admin", "2026-09-20T12:04:00.000Z"),
+        _portal("landing_view", "u_stranger", "2026-09-20T12:05:00.000Z"),
+    ]
+    app = [
+        _ev("auth_gate_view", anon="u_peter", days=1 / 1440 * 1.5),
+        ua.build_event("session_start", email="peter@x.com", anon_id="u_peter",
+                       now=_T0 + timedelta(minutes=3)),
+        ua.build_event("box_design_sim", email="peter@x.com", anon_id="u_peter",
+                       props={"load_type": "Sealed", "interactive": False}, now=_T0 + timedelta(minutes=4)),
+        ua.build_event("session_start", email="admin@x.com", anon_id="u_admin", now=_T0),
+        ua.build_event("session_start", email="tester@x.com", anon_id="u_t", now=_T0),
+    ]
+    rows = ua.live_feed(portal, app, accounts, frozenset({"tester@x.com"}))
+    assert [r.ts for r in rows] == sorted((r.ts for r in rows), reverse=True), "newest first across formats"
+    assert {r.visitor for r in rows} == {"peter@x.com", "u_stranger"}, rows
+    peter = [r for r in rows if r.visitor == "peter@x.com"]
+    assert [r.event for r in reversed(peter)] == [
+        "driver_page_view", "app_open_clicked", "auth_gate_view", "session_start", "box_design_sim"]
+    assert peter[-1].referrer == "www.google.com" and peter[-1].source == "portal"
+    assert peter[0].detail == "Sealed (default render)"
+    assert len(ua.live_feed(portal, app, accounts, limit=2)) == 2
+
+
+def check_ui_live_feed_tab_renders():
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
+    at.query_params["admin_users"] = "1"
+    at.run()
+    assert not at.exception, at.exception
+    store = ua._SHARED_MEMORY_STORE  # after ui_app's hot reload
+    store._portal_events[:] = [_portal("landing_view", "u_visitor", "2026-09-20T12:00:00.000Z")]
+    at.run()
+    assert not at.exception, at.exception
+    assert [t.label for t in at.tabs][:3] == ["Live", "Traction (real users)", "Accounts & credits"]
+    assert at.selectbox(key="live_feed_visitor") is not None
+    store._portal_events.clear()

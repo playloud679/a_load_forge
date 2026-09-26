@@ -54,3 +54,22 @@ accounts that are neither `is_admin` nor excluded. Funnel rows:
 
 Load-type and driver rankings count interactive simulations only. Activity
 before event tracking was deployed is not reconstructed.
+
+## Live feed
+
+`live_feed(portal_events, app_events, accounts, excluded_emails, limit)` is a
+pure, LLOOGG-style raw stream (newest first, UTC) merging the portal's
+`growth_telemetry` (read-only here; written by `load_forge_deploy`, database
+`LOAD_FORGE_GROWTH_DATABASE`, default `(default)`) with Studio `usage_events`.
+
+- A portal `anon_uid` is shown as the account email once the same id appears
+  on a signed-in Studio event, so one visitor's path reads as one person.
+- Hidden: portal events with `properties.internal` (browser tagged via
+  `load-forge.com/?lf_internal=1`), `deployment_verified`, and any event from
+  admin/test accounts or their anonymous ids.
+- Stores expose `recent_events(limit)` / `recent_portal_events(limit)`
+  (Firestore: `order_by` descending on `ts` / `timestamp`).
+
+The admin console's **Live** tab fetches 500 events per source, shows the last
+100, refreshes every 10 s (`@st.fragment(run_every=10)`) and can follow one
+visitor across portal pages → sign-in → Studio.

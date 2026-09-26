@@ -2275,11 +2275,52 @@ def _render_user_management() -> None:
     except Exception:
         _runtime.logger.exception("Could not load analytics exclusions")
         excluded = frozenset()
-    tab_traction, tab_accounts = st.tabs(["Traction (real users)", "Accounts & credits"])
+    tab_live, tab_traction, tab_accounts = st.tabs(["Live", "Traction (real users)", "Accounts & credits"])
+    with tab_live:
+        _render_live_feed(usage_store, accounts, excluded)
     with tab_traction:
         _render_traction_report(usage_store, accounts, excluded)
     with tab_accounts:
         _render_account_rows(accounts, usage_store, excluded)
+
+
+_LIVE_WINDOW = 500   # events fetched per source; journeys are searched in this window
+_LIVE_ROWS = 100
+
+
+@st.fragment(run_every=10)
+def _render_live_feed(usage_store, accounts, excluded: frozenset[str]) -> None:
+    """LLOOGG-style raw stream of portal + Studio events, refreshed every 10 s."""
+    try:
+        portal = usage_store.recent_portal_events(_LIVE_WINDOW)
+        studio = usage_store.recent_events(_LIVE_WINDOW)
+    except Exception:
+        _runtime.logger.exception("Could not load the live feed")
+        st.error("The live feed is unavailable right now.")
+        return
+    rows = _usage_analytics.live_feed(portal, studio, accounts, excluded, limit=_LIVE_WINDOW * 2)
+    st.caption(
+        f"Newest first · UTC · refreshes every 10 s · admin, test accounts, deploy checks and "
+        f"browsers tagged with load-forge.com/?lf_internal=1 are hidden · last {_LIVE_ROWS} of {len(rows)} shown"
+    )
+    if not rows:
+        st.info("No visitor activity yet.")
+        return
+    visitors = list(dict.fromkeys(row.visitor for row in rows if row.visitor))
+    selected = st.selectbox(
+        "Follow one visitor", ["Everyone"] + visitors, key="live_feed_visitor",
+        help="Shows that visitor's whole path (portal pages → sign-in → Studio) within the recent window.",
+    )
+    shown = rows[:_LIVE_ROWS] if selected == "Everyone" else [r for r in rows if r.visitor == selected]
+    st.dataframe(
+        [
+            {"Time": r.ts, "Where": r.source, "Visitor": r.visitor, "Event": r.event,
+             "Detail": r.detail, "From": r.referrer}
+            for r in shown
+        ],
+        hide_index=True,
+        width="stretch",
+    )
 
 
 def _render_traction_report(usage_store, accounts, excluded: frozenset[str]) -> None:

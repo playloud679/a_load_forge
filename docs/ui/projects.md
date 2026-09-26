@@ -36,7 +36,8 @@
   `_render_billing_action_button`, `_render_user_management`.
 - Admin console (`?admin_users=1` or the admin menu): `_render_user_management`
   enforces `catalog._maintenance_allowed()` itself, because the query route
-  bypasses the menu. Tabs: **Traction (real users)** (`_render_traction_report`:
+  bypasses the menu. Tabs: **Live** (`_render_live_feed`, 10-second fragment:
+  raw portal + Studio stream, follow one visitor), **Traction (real users)** (`_render_traction_report`:
   funnel, load/driver rankings, per-user timelines from
   [usage analytics](../usage_analytics.md)) and **Accounts & credits**
   (`_render_account_rows`, including the "Test account" exclusion checkbox).
