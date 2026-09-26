@@ -123,7 +123,9 @@ def _render_local_account_gate(*, render_hero: bool = True) -> None:
                     type="primary",
                     width="stretch",
                 )
-            if submitted:
+            if submitted and _is_admin_address(email):
+                st.error(_ADMIN_PASSWORD_REFUSAL)
+            elif submitted:
                 try:
                     user = accounts.authenticate(email, password)
                 except _saas.InvalidCredentialsError as exc:
@@ -165,7 +167,9 @@ def _render_local_account_gate(*, render_hero: bool = True) -> None:
                     type="primary",
                     width="stretch",
                 )
-            if submitted:
+            if submitted and _is_admin_address(email):
+                st.error(_ADMIN_PASSWORD_REFUSAL)
+            elif submitted:
                 if password != confirmation:
                     st.error("Passwords do not match")
                 else:
@@ -548,8 +552,39 @@ def _get_public_store():
     source_token = _runtime._SAAS_SOURCE_TOKEN ^ Path(_public_store.__file__).stat().st_mtime_ns
     return _cached_public_store(_runtime._SAAS_SETTINGS, source_token)
 
+_ADMIN_PASSWORD_REFUSAL = "This address signs in with Google only."
+
+
+def _configured_admin_emails() -> frozenset[str]:
+    email = os.getenv("LOAD_FORGE_ADMIN_EMAIL", "playloud79@gmail.com").strip().casefold()
+    return frozenset({email} - {""})
+
+
+def _is_admin_address(email: str) -> bool:
+    return str(email or "").strip().casefold() in _configured_admin_emails()
+
+
+def _is_password_session() -> bool:
+    """True when this session signed in with the email/password form in a
+    production-style deployment (not the local-accounts or bypass dev modes).
+
+    Such accounts are not email-verified: anyone can register any address.
+    They must never be administrators, whatever the email says.
+    """
+    settings = _runtime._SAAS_SETTINGS
+    if settings is None or settings.local_accounts or settings.auth_bypass:
+        return False
+    return isinstance(st.session_state.get(_constants._LOCAL_ACCOUNT_SESSION_KEY), dict)
+
+
 def _account_admin_emails() -> frozenset[str]:
-    """Administration is configured separately from the login allowlist."""
+    """Administration is configured separately from the login allowlist.
+
+    Only OIDC (Google) sessions can be admin: an email/password session gets
+    no admin emails, so a self-registered copy of the admin address is inert.
+    """
+    if _is_password_session():
+        return frozenset()
     email = os.getenv("LOAD_FORGE_ADMIN_EMAIL", "playloud79@gmail.com").strip().casefold()
     emails = {email} if email else set()
     uid = os.getenv("LOAD_FORGE_ADMIN_UID", "").strip()

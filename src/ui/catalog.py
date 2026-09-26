@@ -494,6 +494,8 @@ def _render_catalog_maintenance() -> None:
 
 def _maintenance_allowed() -> bool:
     """Restrict catalog editing and user management to the explicitly configured administrator."""
+    if _account._is_password_session():
+        return False  # unverified email/password accounts are never admin
     acc = _account._get_current_user_account()
     if acc and acc.is_admin:
         return True

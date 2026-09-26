@@ -397,3 +397,20 @@ def check_alternatives_use_full_bass_match_settings_and_dedupe_by_ts():
     assert [r["Driver"] for r in alt.dedupe_rows(rows, (30.0, 0.3, 70.0), sig)] == ["A (4Ω)", "B"]
     assert alt._box_label({"Vb L": 42.0, "Fb Hz": 52.3}) == "42.0 L · Fb 52 Hz"
     assert alt._box_label({"Vs L": 10.0, "Vp L": 20.0, "Fb Hz": float("nan")}) == "30.0 L"
+
+
+def check_self_registered_admin_email_is_not_admin():
+    """Email/password accounts are unverified: registering the admin address
+    must not open the admin console (only Google/OIDC sessions can be admin)."""
+    from ui import constants
+
+    admin = os.environ.get("LOAD_FORGE_ADMIN_EMAIL", "playloud79@gmail.com")
+    with patch.dict(os.environ, _SAAS_ENV):
+        at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
+        at.session_state[constants._LOCAL_ACCOUNT_SESSION_KEY] = {
+            "sub": "fire_attacker", "email": admin, "name": "Attacker"}
+        at.query_params["admin_users"] = "1"
+        _run(at)
+        assert not at.exception, at.exception
+        assert any("restricted to the administrator" in e.value for e in at.error)
+        assert not at.tabs

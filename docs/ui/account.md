@@ -89,3 +89,12 @@ the local account or its credits and never reach the full Bass Match.
 
 Usage events: `guest_session`, `sign_in_invite_view`, `auth_gate_view`
 (`props.reason`) — see [usage analytics](../usage_analytics.md).
+
+## Administrators are Google-only
+
+Email/password accounts are not email-verified, so anyone can register any
+address. `_is_password_session()` is true for a production-style session that
+signed in with the email/password form (not the local-accounts or bypass dev
+modes); such sessions get no admin emails (`_account_admin_emails`) and
+`catalog._maintenance_allowed` refuses them. The configured admin address
+(`LOAD_FORGE_ADMIN_EMAIL`) cannot sign up or sign in with a password.

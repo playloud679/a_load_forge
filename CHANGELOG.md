@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.23.1 (2026-09-26)
+
+- **Security fix — admin takeover by self-registration**: email/password accounts are not email-verified, and administration was decided by email, so anyone could "Create account" with the (public, default) admin address and open the admin console. Now only Google/OIDC sessions can be admin (`account._is_password_session` → no admin emails; `catalog._maintenance_allowed` refuses password sessions) and the admin address cannot sign up or sign in with a password ("This address signs in with Google only."). Regression test reproduces the attack (fails without the fix).
+- Validation: `make test` 116 passed; `make test-ui` passed except the pre-existing "Bass Match candidate pool starts open…".
+
 ## 0.23.0 (2026-09-26)
 
 - **Guests get full Bass Match quality**: the similar-driver comparison now runs the same engine and settings as the full Bass Match — optimiser, standard search profile, default goals (Max extension, ripple ≤ 3 dB, excursion ≤ Xmax, group delay ≤ 30 ms), 10–300 Hz / 240 points — with the visitor's box volume as the limit. Each alternative shows its own optimised box (volume, Fb). 0.2–1 s per pool, cached. Only the pool differs from the signed-in search (~25 similar drivers vs the whole catalog with filters).
