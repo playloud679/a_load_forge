@@ -14,6 +14,7 @@ import pandas as pd
 import streamlit as st
 
 import acoustics as _acoustics
+import driver_plausibility as _driver_plausibility
 import presets as _presets
 import pricing as _pricing
 
@@ -647,18 +648,37 @@ def _driver_preset_source(name: str) -> str:
     except ValueError:
         return "Load Forge database"
 
+@lru_cache(maxsize=2)
+def _implausible_driver_names(names: tuple[str, ...]) -> frozenset[str]:
+    """Catalog records quarantined by driver_plausibility (kits, placeholder T/S,
+    name size vs Sd); recomputed only when the catalog name set changes."""
+    flagged = set()
+    for name in names:
+        try:
+            ts = _acoustics.get_driver_preset(name)
+        except Exception:
+            continue
+        if _driver_plausibility.plausibility_issues(name, qts=ts.qts, le_mh=ts.le_mh, sd_cm2=ts.sd_cm2):
+            flagged.add(name)
+    return frozenset(flagged)
+
+
 def _available_driver_preset_names() -> list[str]:
     """Return driver preset names visible to the user.
 
     Strictly restricted to the Load Forge proprietary catalog and Z Bench.
     Third-party aggregate databases (LSDB, VituixCAD, Speaker Box Lite) are
-    excluded from the application library.
+    excluded from the application library, and so are records quarantined as
+    implausible (see docs/driver_plausibility.md): the portal retires the same
+    records with 301s.
     """
     _acoustics.check_dynamic_catalog_freshness()
     names = _acoustics.driver_preset_names()
+    quarantined = _implausible_driver_names(tuple(names))
     return [
         name for name in names
         if _driver_preset_source(name) not in _constants._RESTRICTED_THIRD_PARTY_SOURCES
+        and name not in quarantined
     ]
 
 @st.fragment(run_every=2)

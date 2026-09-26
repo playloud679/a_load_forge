@@ -18,6 +18,13 @@ A single "2-way coaxial" driver is *not* flagged (only kit/system/set wording).
 Oval sizes ("2" x 7") skip the size rule. On the 2026-09-26 catalog it flags 57
 of ~19,200 records.
 
-Used by [ui/alternatives](ui/alternatives.md): an implausible current driver
-shows a warning instead of a comparison, and implausible records are never
-suggested.
+**Quarantine (2026-09-26).** Flagged records are removed from the Studio
+library (`ui/catalog._available_driver_preset_names`, cached per catalog name
+set), hence from search, Bass Match and alternatives; a portal link to one is
+refused like any unknown driver. The portal leaves them out of
+`driver_index.json` and 301s their URLs to the brand or size hub
+(`load_forge_deploy` 1.12.0, `promote_catalog.py`). The crawler catalog itself
+is unchanged.
+
+[ui/alternatives](ui/alternatives.md) still warns instead of comparing when the
+current parameters are implausible (e.g. a user-edited driver).

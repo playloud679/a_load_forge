@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.21.3 (2026-09-26)
+
+- **Implausible catalog records quarantined from the Studio**: the 53 records flagged by `driver_plausibility` (Focal Italian car kits, placeholder T/S, name size vs Sd) leave the driver library, search, Bass Match and alternatives (`catalog._available_driver_preset_names`, cached per catalog name set). A link to one is refused like any unknown driver. The portal retires the same pages with 301s (load_forge_deploy 1.12.0); the crawler catalog is unchanged.
+- Validation: `make test` 114 passed; usage analytics 13 passed; `make test-ui` passed except the pre-existing "Bass Match candidate pool starts open…".
+
 ## 0.21.2 (2026-09-26)
 
 - **No more nonsense comparisons from bad catalog records** (new `src/driver_plausibility.py`): records whose T/S cannot describe the product are flagged — multi-driver kits ("Focal 165 SF3Kit a 3 vie", which had inherited a 65 mm midrange's parameters and produced a 2 L "6.5-inch" box), placeholder parameters (Qts 1.000 with Le 0) and a name size that contradicts Sd (6.5" coax pairs with Sd 530 cm², "8in" records with Sd 2 cm²). 57 of ~19,200 records. A flagged current driver shows "parameters look unreliable" instead of Bass Match alternatives; flagged records are never suggested.

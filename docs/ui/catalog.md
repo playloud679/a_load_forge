@@ -83,3 +83,8 @@ The Finder search and refresh action live in `search_row_finder`: a fluid input
 track plus one control-width action track. Library filters are rendered in
 explicit paired rows (`field_row_library_*`), so a tall multiselect expands its
 own row and the next pair remains aligned. Filter values and callbacks are unchanged.
+
+
+`_available_driver_preset_names` also drops records quarantined by
+[driver_plausibility](../driver_plausibility.md) (`_implausible_driver_names`,
+`lru_cache` keyed by the catalog name tuple).

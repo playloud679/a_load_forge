@@ -325,12 +325,15 @@ def check_plausibility_flags_kits_placeholders_and_size_mismatch():
 
 
 def check_unreliable_driver_shows_warning_not_alternatives():
+    """Quarantined records leave the library (the portal 301s them); a link to one
+    is refused like any unknown driver, and never reaches a design or a comparison."""
+    from ui import catalog
+
     with patch.dict(os.environ, _SAAS_ENV):
         at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=90)
         at.query_params.update({"preset": "Focal 165 SF3Kit a 3 vie da 165 mm", "vb": "2", "fb": "150", "compare": "1"})
         _run(at)
         assert not at.exception, at.exception
-        if at.session_state["driver_preset_name"] != "Focal 165 SF3Kit a 3 vie da 165 mm":
-            return  # record already quarantined from the catalog
-        assert any("look unreliable" in w.value for w in at.warning), [w.value for w in at.warning]
-        assert not any((b.key or "").startswith("lf_alt_open_") for b in at.button)
+        assert "Focal 165 SF3Kit a 3 vie da 165 mm" not in catalog._available_driver_preset_names()
+        assert at.session_state["driver_preset_name"] != "Focal 165 SF3Kit a 3 vie da 165 mm"
+        assert any("not available" in w.value for w in at.warning), [w.value for w in at.warning]
