@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20.1 (2026-09-26)
+
+- **Admin Live tab** (LLOOGG-style): raw stream of portal `growth_telemetry` and Studio `usage_events`, newest first, refreshed every 10 s; a portal visitor is shown by email once they sign in; admin/test accounts, `?lf_internal=1` browsers and deploy checks are hidden; "Follow one visitor" shows one person's whole path. Pure merge in `usage_analytics.live_feed`.
+- Note: the production image tagged v0.20.0 was built from this branch's working tree and already contains the Live tab; this release aligns `main` and the version number with it.
+- Validation: `make test` 111 passed; usage analytics tests 6 passed.
+
 ## 0.20.0 (2026-09-26)
 
 - **Security fix — User Management was reachable by any signed-in user**: `?admin_users=1` rendered the admin console (all emails, plan changes, credit top-ups) without an admin check; only the menu button was guarded. `_render_user_management` now enforces `_maintenance_allowed()` itself. Regression test added.
