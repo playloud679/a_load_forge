@@ -20,6 +20,7 @@ import storage.public_store as _public_store
 from . import constants as _constants
 from . import runtime as _runtime
 from . import navigation as _navigation
+from . import usage as _usage
 
 
 def _remember_local_account(user: _saas.SaaSUser) -> None:
@@ -358,6 +359,12 @@ def _resolve_saas_user() -> _saas.SaaSUser | None:
                     logged_in = True
                     claims = recovered_claims
             if not logged_in:
+                _usage.track(
+                    "auth_gate_view",
+                    {key: str(st.query_params.get(key, "")) for key in ("view", "preset", "d")},
+                    once="gate",
+                )
+                _usage.remember_anon_id_for_sign_in()
                 _navigation.remember_auth_destination()
                 _, col_center, _ = st.columns([1, 3.2, 1])
                 with col_center:

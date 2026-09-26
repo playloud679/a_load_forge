@@ -22,6 +22,7 @@ import streamlit as st
 import acoustics as _acoustics
 import billing as _billing
 import saas as _saas
+import usage_analytics as _usage_analytics
 
 from . import account as _account
 from . import analysis as _analysis
@@ -29,6 +30,7 @@ from . import catalog as _catalog
 from . import constants as _constants
 from . import runtime as _runtime
 from . import state as _state
+from . import usage as _usage
 from . import styles as _styles
 
 
@@ -553,6 +555,8 @@ def _cloud_autosave_step(
             )
     if status == "saved" and st.session_state.get("_cloud_project_revision") != previous_revision:
         _invalidate_cloud_project_list()
+        _usage.track("project_saved", {"load_type": st.session_state.get("load_type", "")},
+                     once=str(st.session_state.get("_cloud_project_id", "")))
     return status
 
 def _render_static_status_badge(label: str, color: str, bg: str, border: str) -> None:
@@ -696,6 +700,7 @@ def _change_project_visibility(visibility: str, *, update: bool = False) -> None
         publication_id=current.publication_id if current else None,
         source_revision=record.revision,
     )
+    _usage.track("project_published", {"visibility": visibility.lower()})
     for previous in publications:
         if previous.publication_id != published.publication_id:
             store.set_visibility(user, previous.publication_id, "unpublished")
@@ -1033,6 +1038,7 @@ def _render_hud_explore_community_button(key: str = "sidebar_community_btn") -> 
 @st.dialog("Subscription Plans & Credits", width="large")
 def _open_billing_modal(acc: _saas.UserAccount, shortfall: int = 0) -> None:
     """Render a clean, modern modal dialog for subscription plans and credit packs."""
+    _usage.track("paywall_seen", {"where": "billing_modal", "shortfall": shortfall}, once="billing_modal")
     stripe_ready = _billing.is_stripe_configured()
 
     # Top Balance & Status Banner
@@ -1867,6 +1873,7 @@ def _render_manage_projects_publish() -> None:
                 source_revision=curr_prj.revision,
             )
             st.session_state["_last_published_id"] = pub_record.publication_id
+            _usage.track("project_published", {"visibility": vis})
             st.toast(f"Published snapshot: {pub_record.title}")
             st.rerun()
         except Exception as exc:
@@ -2215,6 +2222,7 @@ def _render_community_sidebar() -> None:
                         visibility=pub_vis,
                         app_version=_runtime._VERSION,
                     )
+                    _usage.track("project_published", {"visibility": pub_vis})
                     st.toast(f"Published '{pub_rec.title}' to Community!")
                     st.rerun()
                 except Exception as exc:
@@ -2243,6 +2251,10 @@ def _render_public_project_sidebar(pub_id: str) -> None:
 
 def _render_user_management() -> None:
     """Admin-only dashboard to view users, credit balances, change plans and adjust credits."""
+    # Reachable via ?admin_users=1, so the guard must live here, not on the menu button.
+    if not _catalog._maintenance_allowed():
+        st.error("User Management is restricted to the administrator.")
+        return
     c_back, c_title = st.columns([1.5, 8.5], vertical_alignment="center")
     with c_back:
         if st.button("← Back to app", key="user_mgmt_back_btn"):
@@ -2257,6 +2269,71 @@ def _render_user_management() -> None:
         st.info("No registered users found yet.")
         return
 
+    usage_store = _usage.get_usage_store()
+    try:
+        excluded = usage_store.excluded_emails()
+    except Exception:
+        _runtime.logger.exception("Could not load analytics exclusions")
+        excluded = frozenset()
+    tab_traction, tab_accounts = st.tabs(["Traction (real users)", "Accounts & credits"])
+    with tab_traction:
+        _render_traction_report(usage_store, accounts, excluded)
+    with tab_accounts:
+        _render_account_rows(accounts, usage_store, excluded)
+
+
+def _render_traction_report(usage_store, accounts, excluded: frozenset[str]) -> None:
+    """Funnel and per-user timelines over real users only (admin/test excluded)."""
+    try:
+        events = usage_store.list_events()
+    except Exception:
+        _runtime.logger.exception("Could not load usage events")
+        st.error("Usage events are unavailable right now.")
+        return
+    report = _usage_analytics.traction_report(events, accounts, excluded)
+    st.caption(
+        f"Excluding {report.excluded_accounts} admin/test accounts · {len(events):,} events recorded. "
+        "Mark test accounts in the Accounts tab. Activity before event tracking was enabled is not shown."
+    )
+    funnel = report.funnel()
+    top = max(funnel[0][1], report.signups, 1)
+    st.markdown("#### Funnel")
+    for label, value in funnel:
+        base = report.signups if label != funnel[0][0] and report.signups else top
+        share = f"{value / base:.0%}" if base else "–"
+        c_label, c_bar, c_val = st.columns([3, 5, 1.2], vertical_alignment="center")
+        c_label.markdown(label)
+        c_bar.progress(min(1.0, value / top))
+        c_val.markdown(f"**{value}** · {share}" if label != funnel[0][0] else f"**{value}**")
+    st.caption("Percentages after the first row are relative to sign-ups.")
+
+    c_loads, c_drivers = st.columns(2)
+    with c_loads:
+        st.markdown("#### Load types simulated")
+        for name, count in report.load_types.most_common(8) or [("–", 0)]:
+            st.markdown(f"{name} · **{count}**")
+    with c_drivers:
+        st.markdown("#### Drivers simulated")
+        for name, count in report.drivers.most_common(8) or [("–", 0)]:
+            st.markdown(f"{name} · **{count}**")
+
+    st.markdown("#### Real users")
+    for timeline in report.users:
+        sims = timeline.interactive_sims
+        with st.expander(
+            f"{timeline.name or timeline.email} · joined {timeline.created_at.strftime('%d %b')} · "
+            f"{timeline.active_days} active days · {sims} sims · "
+            f"last seen {timeline.last_seen[:16].replace('T', ' ') or 'never'}"
+        ):
+            if not timeline.events:
+                st.caption("No tracked activity yet.")
+            for event in timeline.events[-40:]:
+                props = ", ".join(f"{k}={v}" for k, v in (event.get("props") or {}).items() if v not in ("", None))
+                st.markdown(f"`{event.get('ts', '')[:16].replace('T', ' ')}` **{event.get('event')}** {props}")
+
+
+def _render_account_rows(accounts, usage_store, excluded: frozenset[str]) -> None:
+    """Per-account plan/credit controls plus the analytics test-account flag."""
     # Aggregate metrics
     total_users = len(accounts)
     total_credits_allocated = sum(a.credits_monthly_quota for a in accounts)
@@ -2279,8 +2356,16 @@ def _render_user_management() -> None:
                 admin_badge = " *(Admin)*" if acc.is_admin else ""
                 st.markdown(f"**{acc.name or 'User'}** ({acc.email}){admin_badge}")
                 st.caption(
-                    f"Refill: {acc.quota_reset_at.strftime('%d %b %Y')} · Total sims: {acc.total_simulations_run:,}"
+                    f"Joined {acc.created_at.strftime('%d %b %Y')} · Refill: {acc.quota_reset_at.strftime('%d %b %Y')} "
+                    f"· Bass Match credits used: {acc.total_simulations_run:,}"
                 )
+                if not acc.is_admin and acc.email:
+                    is_test = acc.email.casefold() in excluded
+                    marked = st.checkbox("Test account (exclude from traction)", value=is_test,
+                                         key=f"test_flag_{acc.email}")
+                    if marked != is_test:
+                        usage_store.set_excluded(acc.email, marked)
+                        st.rerun()
             with col_plan:
                 new_plan = st.selectbox(
                     "Plan",

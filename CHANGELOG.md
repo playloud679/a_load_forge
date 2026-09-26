@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.20.0 (2026-09-26)
+
+- **Security fix — User Management was reachable by any signed-in user**: `?admin_users=1` rendered the admin console (all emails, plan changes, credit top-ups) without an admin check; only the menu button was guarded. `_render_user_management` now enforces `_maintenance_allowed()` itself. Regression test added.
+- **Product usage analytics** (new `src/usage_analytics.py`, `src/ui/usage.py`, `docs/usage_analytics.md`): best-effort `usage_events` in the private Firestore database for the sign-in wall, sign-up, session start, Box Design simulations (the unprompted default render is marked non-interactive), Bass Match runs, project save/publish and paywall prompts. Deduplicated per session; scalar props only; no design contents, IP or payment data.
+- **Portal visit → sign-up linkage**: the portal's anonymous `lf_aid` is accepted on entry and crosses the Google sign-in inside the existing 10-minute return cookie (added to `DESTINATION_KEYS`); it is dropped from the URL once signed in. No long-lived analytics cookie.
+- **Admin console tabs**: *Traction (real users)* — funnel (sign-in wall → sign-up → simulation → save → return → publish → paywall), load-type and driver rankings, per-user timelines — and *Accounts & credits*, which adds the join date and a "Test account" checkbox (`analytics_settings/exclusions`). Admins and test accounts are excluded from every figure. "Total sims" is relabelled "Bass Match credits used", which is what it counts.
+- Validation: `make test` 110 passed; usage analytics, admin guard and portal handoff tests passed. Pre-existing failure unchanged on `main`: "Bass Match candidate pool starts open…".
+
 ## 0.19.5 (2026-09-25)
 
 - **AFW export is admin-only**: the "Download AFW project" button (AUDIO per Windows, DCAAV) under Export design is shown only to administrators (`_afw_export_allowed`, same check as catalog maintenance). Standard users keep CSV/FRD/ZMA and the portable **`.lfp`** project export ("Export .lfp Backup" in Project actions).

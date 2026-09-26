@@ -13154,6 +13154,16 @@ test("UI portal handoff preserves saved cloud project", check_handoff_preserves_
 test("UI portal login preserves requested driver and workspace", check_login_destination, group="ui")
 
 
+from test_usage_analytics import (
+    check_admin_console_requires_admin, check_event_vocabulary, check_gate_to_signup_keeps_anonymous_id,
+    check_memory_store_exclusions, check_traction_excludes_internal_traffic,
+)
+test("Usage analytics rejects unknown events and bounds properties", check_event_vocabulary)
+test("Usage analytics traction excludes admin and test traffic", check_traction_excludes_internal_traffic)
+test("Usage analytics memory store exclusions and time filter", check_memory_store_exclusions)
+test("UI usage analytics keeps the portal anonymous id from gate to signup", check_gate_to_signup_keeps_anonymous_id, group="ui")
+test("UI User Management is restricted to the administrator", check_admin_console_requires_admin, group="ui")
+
 from test_repository_contracts import (
     check_makefile_paths,
     check_module_documents,

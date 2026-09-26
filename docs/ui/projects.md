@@ -34,6 +34,12 @@
   `_render_authenticated_account_controls`, `_open_billing_modal`
   (`@st.dialog`), `_render_credits_purchase_popover`,
   `_render_billing_action_button`, `_render_user_management`.
+- Admin console (`?admin_users=1` or the admin menu): `_render_user_management`
+  enforces `catalog._maintenance_allowed()` itself, because the query route
+  bypasses the menu. Tabs: **Traction (real users)** (`_render_traction_report`:
+  funnel, load/driver rankings, per-user timelines from
+  [usage analytics](../usage_analytics.md)) and **Accounts & credits**
+  (`_render_account_rows`, including the "Test account" exclusion checkbox).
 
 ## Invariants
 

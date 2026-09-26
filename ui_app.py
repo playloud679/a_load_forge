@@ -53,6 +53,7 @@ import saas as _saas
 import storage as _storage
 import storage.private_store as _private_store
 import storage.public_store as _public_store
+import usage_analytics as _usage_analytics
 
 sys.path.insert(0, str(Path(__file__).parent / "tools"))
 import compare_afw_sealed as _afw_compare
@@ -89,7 +90,7 @@ def _reload_if_source_changed(module) -> bool:
 # process.
 for _module in (
     _engine, _measurements, _port_cad, _pricing, _presets, _ranking, _saas, _billing,
-    _private_store, _public_store, _storage,
+    _private_store, _public_store, _storage, _usage_analytics,
     _afw_export, _afw_compare,
 ):
     _reload_if_source_changed(_module)
@@ -111,9 +112,10 @@ from ui import projects as _ui_projects
 from ui import runtime as _ui_runtime
 from ui import state as _ui_state
 from ui import styles as _ui_styles
+from ui import usage as _ui_usage
 
 for _ui_module in (
-    _ui_runtime, _ui_constants, _ui_styles, _ui_state, _ui_catalog, _ui_finder,
+    _ui_runtime, _ui_constants, _ui_styles, _ui_usage, _ui_state, _ui_catalog, _ui_finder,
     _ui_optimizer, _ui_analysis, _ui_projects, _ui_navigation, _ui_account, _ui_app,
 ):
     _reload_if_source_changed(_ui_module)
@@ -139,6 +141,8 @@ _ui_runtime._CURRENT_SAAS_USER = _ui_account._resolve_saas_user()
 if _ui_runtime._CURRENT_SAAS_USER is not None:
     _ui_navigation.restore_auth_destination()
 _ui_runtime._ACCOUNT_STORE = _ui_account._get_account_store()
+if _ui_runtime._CURRENT_SAAS_USER is not None:
+    _ui_usage.track_session(_ui_account._get_current_user_account())
 
 from ui.account import _account_admin_emails as _account_admin_emails
 from ui.account import _cached_account_store as _cached_account_store

@@ -30,6 +30,7 @@ from . import optimizer as _optimizer
 from . import projects as _projects
 from . import runtime as _runtime
 from . import state as _state
+from . import usage as _usage
 
 
 
@@ -2000,6 +2001,7 @@ def _render_bass_match_hero(
             )
         if not has_enough_credits:
             shortfall = max(0, run_credits - credits_balance)
+            _usage.track("paywall_seen", {"where": "bass_match_shortfall", "shortfall": shortfall}, once="bm_shortfall")
             st.error(
                 f"Insufficient credits: this scan requires **{run_credits:,} credits**, but your balance is **{credits_balance:,} credits** "
                 f"(shortfall: **{shortfall:,} credits**). "
@@ -2025,6 +2027,7 @@ def _render_bass_match_hero(
     finder_stats_slot = st.empty()
     _render_finder_run_statistics(finder_stats_slot)
     if run_requested:
+        _usage.track("bass_match_run", {"drivers": len(filtered_preset_names), "credits": run_credits})
         if acc and run_credits > 0:
             _runtime._ACCOUNT_STORE.deduct_credits(acc.email or acc.uid, run_credits)
             _account._get_current_user_account.cache_clear()

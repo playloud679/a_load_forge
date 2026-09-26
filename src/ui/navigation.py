@@ -18,7 +18,9 @@ from . import finder as _finder
 from . import projects as _projects
 from . import state as _state
 
-DESTINATION_KEYS = ("view", "preset", "vb", "fb", "load", "p", "explore", "embed", "d")
+# ``lf_aid`` is the opaque anonymous visit id (see ui/usage.py); it rides the
+# same 10-minute return cookie so a sign-up can be linked to its portal visit.
+DESTINATION_KEYS = ("view", "preset", "vb", "fb", "load", "p", "explore", "embed", "d", "lf_aid")
 _COOKIE = "lf_return_destination"
 
 

@@ -22,6 +22,7 @@ from . import navigation as _navigation
 from . import projects as _projects
 from . import runtime as _runtime
 from . import state as _state
+from . import usage as _usage
 
 
 _FORGE_SCORE_HELP = (
@@ -1335,6 +1336,19 @@ def main() -> None:
             sim_voltage,
             sim_series_r,
             float(st.session_state.get("opt_max_ripple_freq_hz", 0.0)),
+        )
+        # The first render simulates a default design unprompted; only later
+        # signatures prove the visitor actually changed something.
+        first_sim_signature = st.session_state.setdefault("_lf_usage_first_sim", simulation_signature)
+        driver_label = str(st.session_state.get("driver_preset_name", ""))
+        _usage.track(
+            "box_design_sim",
+            {
+                "load_type": load_type,
+                "driver": driver_label,
+                "interactive": simulation_signature != first_sim_signature,
+            },
+            once=f"{load_type}|{driver_label}|{simulation_signature != first_sim_signature}",
         )
         model_warnings = [] if load_type != "DCCAV" else (
             _acoustics.alignment_diagnostics(current_ts, box)

@@ -22,6 +22,10 @@ remain untrusted and pass normal catalog/public-project validation. Payloads
 over 3,000 encoded characters are not stored. The cookie requires browser
 JavaScript and cookies; it does not change authentication or permissions.
 
+The allowlist includes `lf_aid`, the opaque anonymous visit id from
+[usage tracking](usage.md), so a sign-up can be linked to its portal visit
+without any long-lived analytics cookie.
+
 The cookie is shared by tabs on the same origin: the latest sign-in destination
 wins. Local email sign-in keeps the existing query and needs no restoration.
 Tests cover handoff state, invalid inputs, reruns, and auth destination filtering.
