@@ -13157,8 +13157,9 @@ test("UI portal login preserves requested driver and workspace", check_login_des
 from test_usage_analytics import (
     check_admin_console_requires_admin, check_event_vocabulary, check_gate_to_signup_keeps_anonymous_id,
     check_memory_store_exclusions, check_traction_excludes_internal_traffic,
-    check_live_feed_merges_and_filters, check_ui_live_feed_tab_renders,
+    check_live_feed_merges_and_filters, check_ui_live_feed_tab_renders, check_live_feed_visitor_summaries,
 )
+test("Usage analytics live feed summarises one row per visitor and hides tagged browsers retroactively", check_live_feed_visitor_summaries)
 test("Usage analytics live feed merges portal and Studio and hides internal traffic", check_live_feed_merges_and_filters)
 test("UI usage analytics admin Live tab renders the feed", check_ui_live_feed_tab_renders, group="ui")
 test("Usage analytics rejects unknown events and bounds properties", check_event_vocabulary)

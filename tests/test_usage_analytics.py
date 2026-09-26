@@ -177,3 +177,27 @@ def check_ui_live_feed_tab_renders():
     assert [t.label for t in at.tabs][:3] == ["Live", "Traction (real users)", "Accounts & credits"]
     assert at.selectbox(key="live_feed_visitor") is not None
     store._portal_events.clear()
+
+
+def check_live_feed_visitor_summaries():
+    portal = [
+        # The owner browsed before tagging the browser, then opened ?lf_internal=1.
+        _portal("landing_view", "u_owner", "2026-09-25T22:18:27.000Z"),
+        _portal("driver_page_view", "u_owner", "2026-09-25T22:19:05.000Z", "/drivers/misco-ms10-w"),
+        _portal("landing_view", "u_owner", "2026-09-26T10:00:00.000Z", internal=True),
+        # A Google visitor who bounced, and one who went on to the Studio.
+        _portal("driver_page_view", "u_bounce", "2026-09-26T05:40:15.000Z",
+                "/drivers/lowther-pm2a", "https://www.google.com/"),
+        _portal("driver_page_view", "u_keen", "2026-09-26T06:00:00.000Z",
+                "/drivers/sb-10", "https://www.google.com/"),
+        _portal("app_open_clicked", "u_keen", "2026-09-26T06:01:00.000Z", view="box-design"),
+    ]
+    rows = ua.live_feed(portal, [], [])
+    assert all(r.visitor != "u_owner" for r in rows), "tagging a browser hides its earlier visits"
+    summaries = {v.visitor: v for v in ua.visitor_summaries(rows)}
+    assert set(summaries) == {"u_bounce", "u_keen"}
+    bounce, keen = summaries["u_bounce"], summaries["u_keen"]
+    assert (bounce.pages, bounce.reached_studio, bounce.arrived_from) == (1, False, "www.google.com")
+    assert bounce.entry_page == "/drivers/lowther-pm2a"
+    assert keen.reached_studio and keen.last_event == "app_open_clicked"
+    assert [v.visitor for v in ua.visitor_summaries(rows)] == ["u_keen", "u_bounce"]

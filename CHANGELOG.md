@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20.2 (2026-09-26)
+
+- **Live tab reads one row per visitor**: last seen, arrival (Google, direct…), entry page, pages viewed, reached the Studio, signed in, last event; with totals (visitors · reached the Studio · left after one page). "Follow one visitor" keeps the event-by-event path. New pure `usage_analytics.visitor_summaries`.
+- **Tagging a browser internal hides its past visits too**: once `?lf_internal=1` is opened, every earlier event of that anonymous id disappears from Live (it previously hid only events recorded after tagging).
+- Validation: usage analytics tests 7 passed; `make test` passed.
+
 ## 0.20.1 (2026-09-26)
 
 - **Admin Live tab** (LLOOGG-style): raw stream of portal `growth_telemetry` and Studio `usage_events`, newest first, refreshed every 10 s; a portal visitor is shown by email once they sign in; admin/test accounts, `?lf_internal=1` browsers and deploy checks are hidden; "Follow one visitor" shows one person's whole path. Pure merge in `usage_analytics.live_feed`.

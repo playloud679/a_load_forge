@@ -64,12 +64,18 @@ pure, LLOOGG-style raw stream (newest first, UTC) merging the portal's
 
 - A portal `anon_uid` is shown as the account email once the same id appears
   on a signed-in Studio event, so one visitor's path reads as one person.
-- Hidden: portal events with `properties.internal` (browser tagged via
-  `load-forge.com/?lf_internal=1`), `deployment_verified`, and any event from
-  admin/test accounts or their anonymous ids.
+- Hidden: `deployment_verified`, and **every** event (including earlier ones)
+  of an anonymous id that was ever tagged `properties.internal` (browser
+  opened once with `load-forge.com/?lf_internal=1`) or that belongs to an
+  admin/test account.
+- `visitor_summaries(rows)` folds the stream into one row per visitor: first
+  and last seen, arrival referrer (or "direct"), entry page, portal pages
+  viewed, whether they reached the Studio (Studio event or `app_open_clicked`
+  / `studio_cta_clicked`), signed in, last event.
 - Stores expose `recent_events(limit)` / `recent_portal_events(limit)`
   (Firestore: `order_by` descending on `ts` / `timestamp`).
 
-The admin console's **Live** tab fetches 500 events per source, shows the last
-100, refreshes every 10 s (`@st.fragment(run_every=10)`) and can follow one
-visitor across portal pages → sign-in → Studio.
+The admin console's **Live** tab fetches 500 events per source, refreshes every
+10 s (`@st.fragment(run_every=10)`), shows one row per visitor (latest 100)
+with totals (visitors, reached the Studio, left after one page), and "Follow
+one visitor" lists that visitor's events across portal → sign-in → Studio.

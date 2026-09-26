@@ -2301,22 +2301,37 @@ def _render_live_feed(usage_store, accounts, excluded: frozenset[str]) -> None:
     rows = _usage_analytics.live_feed(portal, studio, accounts, excluded, limit=_LIVE_WINDOW * 2)
     st.caption(
         f"Newest first · UTC · refreshes every 10 s · admin, test accounts, deploy checks and "
-        f"browsers tagged with load-forge.com/?lf_internal=1 are hidden · last {_LIVE_ROWS} of {len(rows)} shown"
+        "browsers tagged with load-forge.com/?lf_internal=1 are hidden"
     )
     if not rows:
         st.info("No visitor activity yet.")
         return
-    visitors = list(dict.fromkeys(row.visitor for row in rows if row.visitor))
+    summaries = _usage_analytics.visitor_summaries(rows)
     selected = st.selectbox(
-        "Follow one visitor", ["Everyone"] + visitors, key="live_feed_visitor",
+        "Follow one visitor", ["Everyone"] + [v.visitor for v in summaries], key="live_feed_visitor",
         help="Shows that visitor's whole path (portal pages → sign-in → Studio) within the recent window.",
     )
-    shown = rows[:_LIVE_ROWS] if selected == "Everyone" else [r for r in rows if r.visitor == selected]
+    if selected == "Everyone":
+        st.caption(
+            f"{len(summaries)} visitors · {sum(v.reached_studio for v in summaries)} reached the Studio · "
+            f"{sum(v.pages <= 1 and not v.reached_studio for v in summaries)} left after one page"
+        )
+        st.dataframe(
+            [
+                {"Last seen": v.last_seen, "Visitor": v.visitor, "From": v.arrived_from,
+                 "Entry page": v.entry_page, "Pages": v.pages,
+                 "Studio": "✓" if v.reached_studio else "", "Signed in": "✓" if v.signed_in else "",
+                 "Last event": v.last_event}
+                for v in summaries[:_LIVE_ROWS]
+            ],
+            hide_index=True,
+            width="stretch",
+        )
+        return
     st.dataframe(
         [
-            {"Time": r.ts, "Where": r.source, "Visitor": r.visitor, "Event": r.event,
-             "Detail": r.detail, "From": r.referrer}
-            for r in shown
+            {"Time": r.ts, "Where": r.source, "Event": r.event, "Detail": r.detail, "From": r.referrer}
+            for r in rows if r.visitor == selected
         ],
         hide_index=True,
         width="stretch",

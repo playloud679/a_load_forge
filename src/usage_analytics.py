@@ -364,10 +364,11 @@ def live_feed(
 
     Anonymous portal ids are resolved to an email once the same id appears on
     a signed-in Studio event, so a visitor's whole path reads as one person.
-    Dropped: portal events tagged ``internal``, deploy checks, and anything
-    from admin/test accounts or their anonymous ids.
+    Dropped: deploy checks, and every event of an anonymous id that was ever
+    tagged ``internal`` or belongs to an admin/test account.
     """
     app_events = [dict(e) for e in app_events]
+    portal_events = [dict(e) for e in portal_events]
     internal = {e.casefold() for e in excluded_emails}
     internal |= {str(a.email).casefold() for a in accounts if a.is_admin}
     anon_to_email: dict[str, str] = {}
@@ -375,6 +376,11 @@ def live_feed(
         if e.get("anon_id") and e.get("email"):
             anon_to_email.setdefault(e["anon_id"], e["email"].casefold())
     internal_anon = {anon for anon, email in anon_to_email.items() if email in internal}
+    # A browser tagged internal once (?lf_internal=1) hides its earlier visits too.
+    internal_anon |= {
+        str(e.get("anon_uid")) for e in portal_events
+        if e.get("anon_uid") and _portal_props(e).get("internal")
+    }
 
     rows: list[LiveRow] = []
     for e in portal_events:
@@ -417,3 +423,43 @@ def _normalize_ts(value: str) -> str:
     """Portal uses ``...Z``, the Studio ``+00:00``; compare them as UTC."""
     parsed = _parse_ts(value.replace("Z", "+00:00")) if value else None
     return parsed.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S") if parsed else value
+
+
+@dataclass(frozen=True)
+class VisitorSummary:
+    visitor: str
+    first_seen: str
+    last_seen: str
+    arrived_from: str
+    entry_page: str
+    pages: int
+    reached_studio: bool
+    signed_in: bool
+    last_event: str
+
+
+_STUDIO_INTENT = frozenset({"app_open_clicked", "studio_cta_clicked", "bass_match_started"})
+
+
+def visitor_summaries(rows: Iterable[LiveRow]) -> list[VisitorSummary]:
+    """One line per visitor (most recently active first) from ``live_feed`` rows."""
+    by_visitor: dict[str, list[LiveRow]] = {}
+    for row in rows:
+        by_visitor.setdefault(row.visitor, []).append(row)
+    summaries = []
+    for visitor, visits in by_visitor.items():
+        visits.sort(key=lambda r: r.ts)
+        first = visits[0]
+        summaries.append(VisitorSummary(
+            visitor=visitor,
+            first_seen=first.ts,
+            last_seen=visits[-1].ts,
+            arrived_from=next((r.referrer for r in visits if r.referrer), "") or "direct",
+            entry_page=first.detail if first.source == "portal" else "(Studio)",
+            pages=sum(1 for r in visits if r.source == "portal" and r.event.endswith("_view")),
+            reached_studio=any(r.source == "studio" or r.event in _STUDIO_INTENT for r in visits),
+            signed_in="@" in visitor,
+            last_event=visits[-1].event,
+        ))
+    summaries.sort(key=lambda v: v.last_seen, reverse=True)
+    return summaries
