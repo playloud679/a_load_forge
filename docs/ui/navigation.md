@@ -29,3 +29,12 @@ without any long-lived analytics cookie.
 The cookie is shared by tabs on the same origin: the latest sign-in destination
 wins. Local email sign-in keeps the existing query and needs no restoration.
 Tests cover handoff state, invalid inputs, reruns, and auth destination filtering.
+
+`resolve_context_preset` (called first in `app.main`) turns portal hub context
+into a `preset`: `size=6-5` and/or `brand=tang-band` (size and brand hubs have
+no single driver) pick a representative driver via
+`alternatives.context_driver`, then the normal catalog handoff applies it in
+bass reflex. A guest with no context at all gets a typical 6.5" woofer once
+per session (`GUEST_DEFAULT_SIZE_IN`) instead of the DCAAV article example the
+local default uses. `preset`, `d` and `p` always win; `size`, `brand` and
+`compare` are also kept across sign-in.

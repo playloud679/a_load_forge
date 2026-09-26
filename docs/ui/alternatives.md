@@ -32,3 +32,11 @@ credits) stays behind sign-in.
   if the current driver is flagged, a warning replaces the comparison.
   Duplicate listings that differ only by an "Ohm" word ("FRS 7 - 8" /
   "FRS 7 - 8 Ohm") collapse to one.
+
+- **Representative driver** (`representative_driver`, pure; `context_driver`
+  over the visible library): candidates of the requested size (±0.3") and/or
+  brand with published Xmax; without a brand, reference brands (the portal's
+  featured set: Dayton Audio, SB Acoustics, Scan-Speak, SEAS, Peerless,
+  FaitalPRO, B&C, Beyma, Eminence, SICA, Ciare, Morel) are preferred; then
+  first-party names; the one closest to the group's median Fs/Qts/Vas wins
+  (e.g. 6.5" → Peerless 165 WF, 12" → FaitalPRO 12FH530).

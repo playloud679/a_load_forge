@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.22.0 (2026-09-26)
+
+- **Portal hubs land on a relevant driver**: `?size=3` / `?brand=tang-band` (portal size and brand hubs, portal 1.13.0) open Box Design on a representative driver of that class in bass reflex — reference brands preferred, then first-party records, closest to the class median Fs/Qts/Vas — with the Bass Match comparison on top (`compare=1`). The first real Google visitor came from `/drivers/size/3` and got the unrelated KEF DCAAV example.
+- **Guests without context** get a typical 6.5" woofer in bass reflex (Peerless 165 WF) instead of the DCAAV "KEF B110B article example".
+- `size`, `brand` and `compare` survive sign-in (`DESTINATION_KEYS`).
+- Validation: `make test` 115 passed; usage analytics 15 passed; `make test-ui` passed except the pre-existing "Bass Match candidate pool starts open…".
+
 ## 0.21.3 (2026-09-26)
 
 - **Implausible catalog records quarantined from the Studio**: the 53 records flagged by `driver_plausibility` (Focal Italian car kits, placeholder T/S, name size vs Sd) leave the driver library, search, Bass Match and alternatives (`catalog._available_driver_preset_names`, cached per catalog name set). A link to one is refused like any unknown driver. The portal retires the same pages with 301s (load_forge_deploy 1.12.0); the crawler catalog is unchanged.

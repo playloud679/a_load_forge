@@ -13162,6 +13162,7 @@ from test_usage_analytics import (
     check_guest_is_invited_not_charged_for_bass_match, check_alternatives_similarity_is_pure_and_dedupes,
     check_guest_sees_alternatives_on_landing, check_compare_entry_puts_alternatives_on_top,
     check_plausibility_flags_kits_placeholders_and_size_mismatch, check_unreliable_driver_shows_warning_not_alternatives,
+    check_representative_driver_is_typical_first_party_and_trustworthy, check_size_hub_and_contextless_guest_land_on_a_relevant_driver,
     check_memory_store_exclusions, check_traction_excludes_internal_traffic,
     check_live_feed_merges_and_filters, check_ui_live_feed_tab_renders, check_live_feed_visitor_summaries,
 )
@@ -13178,6 +13179,8 @@ test("UI usage analytics guest sees and opens Bass Match alternatives on landing
 test("UI usage analytics compare entry puts Bass Match alternatives above the chart", check_compare_entry_puts_alternatives_on_top, group="ui")
 test("Usage analytics plausibility flags kits, placeholder T/S and size vs Sd; Ohm duplicates collapse", check_plausibility_flags_kits_placeholders_and_size_mismatch)
 test("UI usage analytics unreliable catalog driver shows a warning, not alternatives", check_unreliable_driver_shows_warning_not_alternatives, group="ui")
+test("Usage analytics representative driver is typical, first-party and trustworthy", check_representative_driver_is_typical_first_party_and_trustworthy)
+test("UI usage analytics size-hub and context-less guests land on a relevant bass-reflex driver", check_size_hub_and_contextless_guest_land_on_a_relevant_driver, group="ui")
 test("UI User Management is restricted to the administrator", check_admin_console_requires_admin, group="ui")
 
 from test_repository_contracts import (

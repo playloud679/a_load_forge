@@ -134,6 +134,83 @@ def _catalog_features(names: tuple[str, ...]) -> dict[str, tuple]:
     return features
 
 
+def _slug(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", str(text).casefold()).strip("-")
+
+
+def parse_size_slug(value: str) -> float | None:
+    """Portal size-hub slug → inches: "3" → 3.0, "6-5" → 6.5, "1-5" → 1.5."""
+    match = re.fullmatch(r"(\d{1,2})(?:[-.](\d))?", str(value or "").strip())
+    if not match:
+        return None
+    inches = float(match.group(1)) + (int(match.group(2)) / 10 if match.group(2) else 0.0)
+    return inches if 1.0 <= inches <= 24.0 else None
+
+
+# Reference hi-fi/pro brands (the portal's "featured" set): a landing without a
+# brand shows one of these rather than a car-audio or retail record.
+REFERENCE_BRANDS = frozenset({
+    "dayton-audio", "faitalpro", "b-c-speakers", "ciare", "sica", "peerless-by-tymphany",
+    "scan-speak", "sb-acoustics", "sb-audience", "beyma", "eminence", "morel", "seas",
+})
+
+
+def representative_driver(
+    features: dict[str, tuple],
+    brands: dict[str, str],
+    *,
+    size_in: float | None = None,
+    brand_slug: str | None = None,
+) -> str | None:
+    """The most typical trustworthy driver for a size and/or brand (pure).
+
+    Candidates: matching nominal size (±0.3") and/or brand slug, published Xmax.
+    Without a brand, reference brands are preferred; then first-party names (no
+    "WEB:"-style source prefix); among those the one closest to the group's
+    median Fs, Qts and Vas wins, so the landing shows an ordinary driver of that
+    class rather than an outlier.
+    """
+    group = [
+        name for name, (c_size, c_fs, c_qts, c_vas, c_xmax) in features.items()
+        if c_xmax and c_xmax > 0 and c_fs and c_qts and c_vas
+        and (size_in is None or (c_size and abs(float(c_size) - size_in) <= 0.3))
+        and (not brand_slug or _slug(brands.get(name, "")) == brand_slug)
+    ]
+    if not group:
+        return None
+    if not brand_slug:
+        reference = [name for name in group if _slug(brands.get(name, "")) in REFERENCE_BRANDS]
+        group = reference or group
+    first_party = [name for name in group if not _SOURCE_PREFIX.match(name)]
+    group = first_party or group
+
+    def median(values: list[float]) -> float:
+        ordered = sorted(values)
+        return ordered[len(ordered) // 2]
+
+    mid = [median([math.log(features[n][i]) for n in group]) for i in (1, 2, 3)]
+    return min(group, key=lambda n: (
+        sum(abs(math.log(features[n][i]) - mid[k]) for k, i in enumerate((1, 2, 3))), n))
+
+
+@lru_cache(maxsize=2)
+def _catalog_brands(names: tuple[str, ...]) -> dict[str, str]:
+    brands = {}
+    for name in names:
+        try:
+            brands[name] = _acoustics.driver_preset_info(name).brand or ""
+        except Exception:
+            continue
+    return brands
+
+
+def context_driver(size_in: float | None, brand_slug: str | None) -> str | None:
+    """Representative driver among those visible in the Studio library."""
+    names = tuple(_catalog._available_driver_preset_names())
+    return representative_driver(_catalog_features(names), _catalog_brands(names),
+                                 size_in=size_in, brand_slug=brand_slug)
+
+
 @st.cache_data(show_spinner=False, max_entries=512, ttl=24 * 3600)
 def _ranked_alternatives(pool: tuple[str, ...], load_type: str, volume_l: float, voltage_v: float) -> list[dict]:
     rows = [

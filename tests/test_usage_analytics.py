@@ -337,3 +337,45 @@ def check_unreliable_driver_shows_warning_not_alternatives():
         assert "Focal 165 SF3Kit a 3 vie da 165 mm" not in catalog._available_driver_preset_names()
         assert at.session_state["driver_preset_name"] != "Focal 165 SF3Kit a 3 vie da 165 mm"
         assert any("not available" in w.value for w in at.warning), [w.value for w in at.warning]
+
+
+def check_representative_driver_is_typical_first_party_and_trustworthy():
+    from ui import alternatives as alt
+
+    assert alt.parse_size_slug("6-5") == 6.5 and alt.parse_size_slug("3") == 3.0
+    assert alt.parse_size_slug("x") is None and alt.parse_size_slug("99") is None
+    features = {
+        "Typical 3": (3.0, 100.0, 0.50, 1.0, 2.0),
+        "Outlier 3": (3.0, 300.0, 1.50, 0.1, 2.0),
+        "WEB: Typical 3 retail": (3.0, 100.0, 0.50, 1.0, 2.0),
+        "No Xmax 3": (3.0, 100.0, 0.50, 1.0, 0.0),
+        "Woofer 6.5": (6.5, 40.0, 0.40, 20.0, 5.0),
+        "Other brand 3": (3.0, 110.0, 0.55, 1.1, 2.0),
+    }
+    brands = {n: "Tang Band" for n in features} | {"Other brand 3": "Dayton Audio"}
+    assert alt.representative_driver(features, brands, size_in=3.0) in {"Typical 3", "Other brand 3"}
+    assert alt.representative_driver(features, brands, size_in=3.0, brand_slug="tang-band") == "Typical 3"
+    assert alt.representative_driver(features, brands, size_in=3.0, brand_slug="dayton-audio") == "Other brand 3"
+    assert alt.representative_driver(features, brands, size_in=6.5) == "Woofer 6.5"
+    assert alt.representative_driver(features, brands, size_in=12.0) is None
+
+
+def check_size_hub_and_contextless_guest_land_on_a_relevant_driver():
+    with patch.dict(os.environ, _SAAS_ENV):
+        from ui import alternatives as alt
+
+        at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=90)
+        at.query_params.update({"view": "bass-match", "size": "3", "compare": "1"})
+        _run(at)
+        assert not at.exception, at.exception
+        chosen = at.session_state["driver_preset_name"]
+        assert chosen == alt.context_driver(3.0, None), chosen
+        assert at.session_state["load_type"] == "Bass reflex"
+        assert at.session_state["workspace_mode"] == "Box Design"
+        assert at.button(key="lf_alt_hide") is not None, "size-hub compare entries show alternatives on top"
+
+        bare = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=90)
+        _run(bare)
+        assert not bare.exception, bare.exception
+        assert bare.session_state["driver_preset_name"] == alt.context_driver(6.5, None)
+        assert bare.session_state["load_type"] == "Bass reflex", "no DCAAV article example for guests"

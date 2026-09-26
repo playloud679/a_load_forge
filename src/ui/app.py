@@ -99,6 +99,9 @@ def main() -> None:
     _catalog._driver_preset_size.cache_clear()
     _projects._community_tab_image_b64.cache_clear()
 
+    # Portal size/brand hubs (and context-less guests) → a representative driver.
+    _navigation.resolve_context_preset()
+
     # Resume the last open cloud project on clean startup without deep links
     if (
         st.session_state.get("_cloud_project_id") is None

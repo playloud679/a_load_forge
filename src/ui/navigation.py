@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from urllib.parse import parse_qsl, quote, unquote, urlencode
 
 import streamlit as st
@@ -16,12 +17,17 @@ from . import catalog as _catalog
 from . import constants as _constants
 from . import finder as _finder
 from . import projects as _projects
+from . import runtime as _runtime
 from . import state as _state
 
 # ``lf_aid`` is the opaque anonymous visit id (see ui/usage.py); it rides the
 # same 10-minute return cookie so a sign-up can be linked to its portal visit.
 # ``name`` is the project name a guest typed before pressing Save (with ``d``).
-DESTINATION_KEYS = ("view", "preset", "vb", "fb", "load", "p", "explore", "embed", "d", "lf_aid", "name")
+DESTINATION_KEYS = ("view", "preset", "vb", "fb", "load", "p", "explore", "embed", "d", "lf_aid", "name",
+                    "size", "brand", "compare")
+# A guest with no driver context lands on an ordinary 6.5" woofer in bass reflex
+# (not the DCAAV article example the local default uses).
+GUEST_DEFAULT_SIZE_IN = 6.5
 _COOKIE = "lf_return_destination"
 
 
@@ -61,6 +67,40 @@ def restore_auth_destination() -> None:
         f'<script>document.cookie = "{_COOKIE}=; Path=/; SameSite=Lax; Max-Age=0";</script>',
         unsafe_allow_javascript=True,
     )
+
+
+def resolve_context_preset() -> None:
+    """Turn portal hub context (``size=6-5``, ``brand=tang-band``) into a ``preset``.
+
+    Size and brand hubs have no single driver; a representative one of that
+    class is chosen so the visitor lands on something relevant, and the regular
+    catalog handoff then applies it. A guest arriving with no context at all
+    gets a typical 6.5" woofer once per session. Explicit ``preset``, shared
+    (``d``) and public (``p``) links always win.
+    """
+    if any(st.query_params.get(key) for key in ("preset", "d", "p")):
+        return
+    size_raw = str(st.query_params.get("size", "") or "")
+    brand_raw = str(st.query_params.get("brand", "") or "")
+    guest_default = (
+        _runtime._GUEST and not size_raw and not brand_raw
+        and "driver_fs_hz" not in st.session_state
+        and not st.session_state.get("_guest_default_driver_applied")
+    )
+    if not (size_raw or brand_raw or guest_default):
+        return
+    from . import alternatives as _alternatives
+
+    size_in = _alternatives.parse_size_slug(size_raw) if size_raw else (
+        GUEST_DEFAULT_SIZE_IN if guest_default else None)
+    brand_slug = re.sub(r"[^a-z0-9]+", "-", brand_raw.casefold()).strip("-") or None
+    st.session_state["_guest_default_driver_applied"] = True
+    st.query_params.pop("size", None)
+    st.query_params.pop("brand", None)
+    name = _alternatives.context_driver(size_in, brand_slug) or (
+        _alternatives.context_driver(size_in, None) if brand_slug and size_in else None)
+    if name:
+        st.query_params["preset"] = name
 
 
 def apply_catalog_handoff(*, preserve_existing: bool = False) -> None:
