@@ -20,7 +20,8 @@ from . import state as _state
 
 # ``lf_aid`` is the opaque anonymous visit id (see ui/usage.py); it rides the
 # same 10-minute return cookie so a sign-up can be linked to its portal visit.
-DESTINATION_KEYS = ("view", "preset", "vb", "fb", "load", "p", "explore", "embed", "d", "lf_aid")
+# ``name`` is the project name a guest typed before pressing Save (with ``d``).
+DESTINATION_KEYS = ("view", "preset", "vb", "fb", "load", "p", "explore", "embed", "d", "lf_aid", "name")
 _COOKIE = "lf_return_destination"
 
 

@@ -26,6 +26,9 @@ _SAAS_SOURCE_TOKEN = Path(_saas.__file__).stat().st_mtime_ns
 _SAAS_SETTINGS = None
 _CURRENT_SAAS_USER = None
 _ACCOUNT_STORE = None
+# True for a signed-out visitor using the Studio as a guest (guest_access).
+# Distinct from local mode (SaaS disabled), where no user also means "owner".
+_GUEST = False
 
 
 def initialize_saas_settings() -> None:

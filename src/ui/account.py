@@ -6,7 +6,6 @@ import json
 import multiprocessing
 import os
 import time
-from functools import cache
 from pathlib import Path
 from typing import Any
 
@@ -329,8 +328,75 @@ def _sync_user_info_from_cookie() -> dict[str, Any] | None:
         return None
 
 
+_SIGN_IN_REASON_KEY = "_guest_sign_in_reason"
+_SIGN_IN_COPY = {
+    "save": ("Sign in to save your design", "Your design comes with you: it is saved to your account right after you sign in."),
+    "bass_match": ("Sign in to run Bass Match", "Bass Match ranks all catalog drivers for your box. Free plan, no card required."),
+    "projects": ("Sign in to see your projects", "Your saved designs live in your account."),
+    "account": ("Sign in to Load Forge", "Save designs, run Bass Match across the whole catalog. Free plan, no card required."),
+}
+
+
+def request_sign_in(reason: str) -> None:
+    """Send a guest to the sign-in page (button callback).
+
+    For ``save`` the current design and name ride the URL (``d``/``name``), and
+    therefore the 10-minute return cookie, across the Google redirect; the new
+    session loads them and autosaves the project.
+    """
+    from . import state as _state
+
+    st.session_state[_SIGN_IN_REASON_KEY] = reason
+    st.session_state.pop(_GUEST_INVITE_KEY, None)
+    # The sign-in page renders no design widgets, and Streamlit drops the state
+    # of widgets a run does not render: keep a copy to restore on return.
+    _state._snapshot_design_state()
+    if reason == "save":
+        from . import projects as _projects
+
+        token = _projects._encode_share_payload()
+        # Already the guest's own state: do not re-apply it if they come back.
+        st.session_state["_applied_share_token"] = token
+        st.query_params["d"] = token
+        st.query_params["name"] = str(st.session_state.get("project_name", ""))[:80]
+        st.query_params["view"] = "box-design"
+
+
+_GUEST_INVITE_KEY = "_guest_invite_reason"
+
+
+def invite_guest(reason: str) -> None:
+    """Guest asked for an account-only area: stay in Box Design, show the invite."""
+    st.session_state[_GUEST_INVITE_KEY] = reason
+    st.session_state["workspace_mode"] = "Box Design"
+
+
+def render_guest_sign_in_invite() -> None:
+    """Non-blocking card above Box Design; the design widgets keep rendering."""
+    reason = st.session_state.get(_GUEST_INVITE_KEY)
+    if not (_runtime._GUEST and reason in _SIGN_IN_COPY):
+        return
+    title, subtitle = _SIGN_IN_COPY[reason]
+    _usage.track("sign_in_invite_view", {"reason": reason}, once=f"invite:{reason}")
+    with st.container(border=True, key="guest_sign_in_invite"):
+        c_text, c_sign, c_close = st.columns([5, 1.6, 1.2], vertical_alignment="center")
+        c_text.markdown(f"**{title}** · {subtitle}")
+        c_sign.button("Sign in — free", type="primary", width="stretch",
+                      key=f"guest_invite_sign_in_{reason}", on_click=request_sign_in, args=(reason,))
+        c_close.button("Not now", width="stretch", key=f"guest_invite_close_{reason}",
+                       on_click=lambda: st.session_state.pop(_GUEST_INVITE_KEY, None))
+
+
+def _continue_as_guest() -> None:
+    from . import state as _state
+
+    st.session_state.pop(_SIGN_IN_REASON_KEY, None)
+    _state._restore_design_state()
+
+
 def _resolve_saas_user() -> _saas.SaaSUser | None:
     """Resolve the authenticated user when either auth or SaaS is enabled."""
+    _runtime._GUEST = False
     # Finder workers re-import this module under multiprocessing spawn/forkserver
     # without a Streamlit request context. They only execute pure ranking helpers
     # and must never enter an account flow or touch project persistence.
@@ -358,20 +424,34 @@ def _resolve_saas_user() -> _saas.SaaSUser | None:
                 if recovered_claims:
                     logged_in = True
                     claims = recovered_claims
+            reason = st.session_state.get(_SIGN_IN_REASON_KEY)
+            if not logged_in and _runtime._SAAS_SETTINGS.guest_access and not reason:
+                _runtime._GUEST = True
+                _usage.track(
+                    "guest_session",
+                    {key: str(st.query_params.get(key, "")) for key in ("view", "preset")},
+                    once="guest",
+                )
+                return None
             if not logged_in:
                 _usage.track(
                     "auth_gate_view",
-                    {key: str(st.query_params.get(key, "")) for key in ("view", "preset", "d")},
-                    once="gate",
+                    {"reason": reason or "wall",
+                     **{key: str(st.query_params.get(key, "")) for key in ("view", "preset")}},
+                    once=f"gate:{reason}",
                 )
                 _usage.remember_anon_id_for_sign_in()
                 _navigation.remember_auth_destination()
                 _, col_center, _ = st.columns([1, 3.2, 1])
                 with col_center:
-                    _render_auth_hero_and_badges(
-                        title="Sign in to Load Forge",
-                        subtitle="Sign in to save and manage your box designs, simulations, and driver catalog.",
-                    )
+                    title, subtitle = _SIGN_IN_COPY.get(reason, (
+                        "Sign in to Load Forge",
+                        "Sign in to save and manage your box designs, simulations, and driver catalog.",
+                    ))
+                    _render_auth_hero_and_badges(title=title, subtitle=subtitle)
+                    if reason:
+                        st.button("← Back to my design (continue as guest)", key="continue_as_guest",
+                                  on_click=_continue_as_guest)
                     try:
                         auth_configured = "auth" in st.secrets
                     except (FileNotFoundError, RuntimeError):
@@ -477,10 +557,37 @@ def _account_admin_emails() -> frozenset[str]:
         emails.add(_runtime._CURRENT_SAAS_USER.email.strip().casefold())
     return frozenset(emails - {""})
 
-@cache
+_CURRENT_ACCOUNT_KEY = "_lf_current_account"
+_NO_ACCOUNT = object()
+
+
 def _get_current_user_account() -> _saas.UserAccount | None:
-    """Reuse one account read within this script run, never across sessions."""
+    """Reuse one account read within this script run, never across sessions.
+
+    The memo lives in ``st.session_state`` (per browser session); a process-wide
+    ``functools.cache`` would hand one user's account to another concurrent
+    session. ``app.main`` clears it at the start of every run.
+    """
+    cached = st.session_state.get(_CURRENT_ACCOUNT_KEY, _NO_ACCOUNT)
+    if cached is not _NO_ACCOUNT:
+        return cached
+    acc = _load_current_user_account()
+    st.session_state[_CURRENT_ACCOUNT_KEY] = acc
+    return acc
+
+
+def _clear_current_user_account() -> None:
+    st.session_state.pop(_CURRENT_ACCOUNT_KEY, None)
+
+
+# Existing call sites use the functools-style name.
+_get_current_user_account.cache_clear = _clear_current_user_account
+
+
+def _load_current_user_account() -> _saas.UserAccount | None:
     if _runtime._CURRENT_SAAS_USER is None:
+        if _runtime._GUEST:
+            return None  # guests never share the local demo account or its credits
         # Default local session account for demo/offline use with full trial balance
         acc = _runtime._ACCOUNT_STORE.get_or_create_account(
             uid="local-user",

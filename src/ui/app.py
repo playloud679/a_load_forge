@@ -13,6 +13,7 @@ import billing as _billing
 import ranking as _ranking
 
 from . import account as _account
+from . import alternatives as _alternatives
 from . import analysis as _analysis
 from . import catalog as _catalog
 from . import constants as _constants
@@ -89,7 +90,8 @@ def main() -> None:
     had_design = "driver_fs_hz" in st.session_state
     # The original script re-created functools caches on every Streamlit
     # rerun; keep that per-run scope now that modules are imported once.
-    _account._get_current_user_account.cache_clear()
+    # (The current-account memo is per session and cleared by ui_app.py before
+    # the first read of each run.)
     _catalog._driver_preset_family.cache_clear()
     _catalog._driver_preset_identity_fields.cache_clear()
     _catalog._driver_preset_display_label.cache_clear()
@@ -250,13 +252,19 @@ def main() -> None:
         "box-design": "Box Design",
         "projects": "Manage Projects",
     }.get(str(st.query_params.get("view", "")))
+    if _runtime._GUEST and requested_workspace in ("Bass Match", "Manage Projects"):
+        # Guests land on a result, not on a sign-in wall; Bass Match is offered from there.
+        if st.session_state.get("_applied_workspace_route") != st.query_params.get("view"):
+            st.session_state[_account._GUEST_INVITE_KEY] = (
+                "bass_match" if requested_workspace == "Bass Match" else "projects")
+        requested_workspace = "Box Design"
     deep_link_workspace = requested_workspace or (
         "Box Design" if (st.query_params.get("d") or st.query_params.get("preset")) else None
     )
     initial_workspace = (
         deep_link_workspace
         or _state._resume_last_engineering_workspace()
-        or _constants._STUDIO_WORKSPACE
+        or ("Box Design" if _runtime._GUEST else _constants._STUDIO_WORKSPACE)
     )
     if st.session_state.pop("_projects_after_login", False):
         if not any(st.query_params.get(key) for key in ("p", "explore", "checkout", "maintenance", "admin_users")):
@@ -321,6 +329,19 @@ def main() -> None:
         except Exception:
             _runtime.logger.exception("Invalid share link payload")
             st.warning("The shared link could not be decoded; using the current parameters.")
+    _sign_in_reason = st.session_state.get(_account._SIGN_IN_REASON_KEY)
+    if _runtime._CURRENT_SAAS_USER is not None and (_sign_in_reason or "name" in st.query_params):
+        # A guest signed in. Same-session sign-in (email): restore the design
+        # the sign-in page dropped. Google redirect: it came back through ``d``.
+        # After "Save · Sign in", keep their project name and save it now.
+        st.session_state.pop(_account._SIGN_IN_REASON_KEY, None)
+        if _sign_in_reason:
+            _state._restore_design_state()
+        _carried_name = str(st.query_params.pop("name", "") or "").strip()
+        if _carried_name:
+            st.session_state["project_name"] = _carried_name[:80]
+        if _sign_in_reason in (None, "save"):
+            _projects._mark_cloud_project_dirty(immediate=True)
     _navigation.apply_catalog_handoff(preserve_existing=had_design)
     _finder._initialize_alignment_defaults()
     _finder._sync_auto_alignment_if_needed()
@@ -1262,7 +1283,7 @@ def main() -> None:
     if workspace_mode == "User Management":
         _projects._render_user_management()
         st.stop()
-    if workspace_mode == _constants._STUDIO_WORKSPACE:
+    if workspace_mode == _constants._STUDIO_WORKSPACE and not _runtime._GUEST:
         _projects._render_studio_start()
         st.stop()
     if workspace_mode == "Manage Projects":
@@ -1276,6 +1297,7 @@ def main() -> None:
     if workspace_mode == "Bass Match":
         _finder._render_find_driver_workspace(filtered_preset_names)
         st.stop()
+    _account.render_guest_sign_in_invite()
     try:
         if current_ts is None:
             raise ValueError("Driver parameters are incomplete")
@@ -1653,6 +1675,7 @@ def main() -> None:
 
         # Details as popovers on one row: the analysis column fits the viewport
         # and the panels still open wide over the page.
+        _alternatives.render_alternatives(driver_label, load_type, box, sim_voltage)
         details_row = st.container(key="lf_details_row")
         exp_c1, exp_c2, exp_c3 = details_row.columns(3)
         with exp_c1:

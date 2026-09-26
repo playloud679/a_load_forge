@@ -29,6 +29,11 @@ development only.  `LOAD_FORGE_AUTH_BYPASS=true` creates a local development
 identity; `SaaSSettings` rejects that flag whenever Cloud Run's `K_SERVICE`
 environment variable is present.
 
+`LOAD_FORGE_GUEST_ACCESS` (default **true**) lets signed-out visitors use Box
+Design as guests when `LOAD_FORGE_AUTH_REQUIRED=true`: no account, no credits,
+no persistence. Saving, Projects and Bass Match ask for sign-in (see
+[ui/account](ui/account.md)). Set it to `false` to restore the sign-in wall.
+
 `LOAD_FORGE_OPEN_BETA_ENABLED=true` is a server-side promotional override.
 It grants Free and Pro accounts the current Pro access tier and quotas while
 leaving the account's stored plan unchanged; Team accounts retain their larger

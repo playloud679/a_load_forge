@@ -216,3 +216,4 @@ for the pre-production workflow and targeted test commands.
 
 - `src/ui/navigation.py` → [Portal entry and sign-in return](ui/navigation.md).
 - `src/ui/usage.py` → [Usage event tracking glue](ui/usage.md).
+- `src/ui/alternatives.py` → [Bass Match preview in Box Design](ui/alternatives.md).

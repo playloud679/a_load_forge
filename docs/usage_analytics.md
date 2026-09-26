@@ -11,7 +11,10 @@ Only these names are accepted (`build_event` raises `ValueError` otherwise):
 
 | Event | Emitted when | Dedup (per Streamlit session) |
 |---|---|---|
-| `auth_gate_view` | an anonymous visitor reaches the sign-in wall | once |
+| `guest_session` | a signed-out visitor opens the Studio as a guest | once |
+| `sign_in_invite_view` | a guest sees the in-app invite (Bass Match / Projects) | once per reason |
+| `auth_gate_view` | the sign-in page is shown; `props.reason` = `save`, `bass_match`, `projects`, `account`, or `wall` (guest access off) | once per reason |
+| `alternatives_shown` / `alternative_opened` | Box Design listed similar drivers / one was opened | once per driver × load / every open |
 | `signup_completed` | the signed-in account was created ≤15 min ago | once |
 | `session_start` | a signed-in session opens | once |
 | `box_design_sim` | a Box Design simulation renders; `interactive` is false for the unprompted first render | once per load type × driver × interactive |
@@ -45,12 +48,13 @@ Recording is best-effort: `ui.usage.track` logs a warning and never raises.
 `traction_report(events, accounts, excluded_emails)` is pure. Real users are
 accounts that are neither `is_admin` nor excluded. Funnel rows:
 
-1. anonymous visitors that reached the sign-in wall (distinct `anon_id`,
-   excluding any id that ever belonged to an internal account);
-2. sign-ups (real accounts);
-3. activated: ≥1 interactive `box_design_sim` or `bass_match_run`;
-4. saved a project; 5. came back ≥1 day after sign-up (`session_start`);
-6. published; 7. hit a paywall.
+1. anonymous visitors who used the Studio as guests, and 2. who opened the
+   sign-in page (distinct `anon_id`, excluding any id that ever belonged to an
+   internal account);
+3. sign-ups (real accounts);
+4. activated: ≥1 interactive `box_design_sim` or `bass_match_run`;
+5. saved a project; 6. came back ≥1 day after sign-up (`session_start`);
+7. published; 8. hit a paywall.
 
 Load-type and driver rankings count interactive simulations only. Activity
 before event tracking was deployed is not reconstructed.

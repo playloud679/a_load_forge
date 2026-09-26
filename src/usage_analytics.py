@@ -29,7 +29,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Protocol
 
 EVENTS = frozenset({
-    "auth_gate_view",     # anonymous visitor reached the sign-in wall
+    "guest_session",      # signed-out visitor opened the Studio as a guest
+    "sign_in_invite_view",  # guest saw the in-app "sign in for Bass Match/projects" card
+    "auth_gate_view",     # the sign-in page was shown (props.reason: save, bass_match, projects, wall)
     "signup_completed",   # account created in this session
     "session_start",      # signed-in session opened
     "box_design_sim",     # a Box Design simulation rendered (once per load/driver per session)
@@ -37,6 +39,8 @@ EVENTS = frozenset({
     "project_saved",
     "project_published",
     "paywall_seen",       # an upgrade / insufficient-credits prompt was shown
+    "alternatives_shown",   # Box Design listed similar drivers (once per driver × load)
+    "alternative_opened",   # a listed alternative was opened as a design tab
 })
 
 EVENTS_COLLECTION = "usage_events"
@@ -216,6 +220,7 @@ class UserTimeline:
 
 @dataclass
 class TractionReport:
+    guest_visitors: int
     gate_visitors: int
     signups: int
     activated: int
@@ -230,7 +235,8 @@ class TractionReport:
 
     def funnel(self) -> list[tuple[str, int]]:
         return [
-            ("Reached sign-in wall (anonymous)", self.gate_visitors),
+            ("Used the Studio as a guest", self.guest_visitors),
+            ("Opened sign-in", self.gate_visitors),
             ("Signed up", self.signups),
             ("Ran a simulation", self.activated),
             ("Saved a project", self.saved),
@@ -281,10 +287,14 @@ def traction_report(
         e.get("anon_id") for e in events
         if e.get("anon_id") and (e.get("email") or "").casefold() in internal_emails
     }
-    gate_visitors = {
-        e["anon_id"] for e in events
-        if e.get("event") == "auth_gate_view" and e.get("anon_id") and e["anon_id"] not in internal_anon
-    }
+    def anon_with(event_name: str) -> set[str]:
+        return {
+            e["anon_id"] for e in events
+            if e.get("event") == event_name and e.get("anon_id") and e["anon_id"] not in internal_anon
+        }
+
+    gate_visitors = anon_with("auth_gate_view")
+    guest_visitors = anon_with("guest_session")
 
     load_types: Counter = Counter()
     drivers: Counter = Counter()
@@ -312,6 +322,7 @@ def traction_report(
     for t in users:
         t.events.sort(key=lambda e: e.get("ts", ""))
     return TractionReport(
+        guest_visitors=len(guest_visitors),
         gate_visitors=len(gate_visitors),
         signups=len(users),
         activated=sum(1 for t in users if t.interactive_sims or t.count("bass_match_run")),

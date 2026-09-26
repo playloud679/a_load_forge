@@ -90,6 +90,9 @@ class SaaSSettings:
     oidc_provider: str | None = None
     auth_bypass: bool = False
     local_accounts: bool = False
+    # Signed-out visitors may use Box Design; saving, projects and Bass Match
+    # still require sign-in (see docs/ui/account.md).
+    guest_access: bool = False
     local_account_database: str = ".local/load_forge_accounts.sqlite3"
     dev_uid: str = "local-developer"
     dev_email: str = "developer@localhost"
@@ -231,6 +234,7 @@ class SaaSSettings:
             oidc_provider=provider,
             auth_bypass=auth_bypass,
             local_accounts=local_accounts,
+            guest_access=_env_flag(values, "LOAD_FORGE_GUEST_ACCESS", default=True),
             local_account_database=str(
                 values.get(
                     "LOAD_FORGE_LOCAL_ACCOUNT_DATABASE",

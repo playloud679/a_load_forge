@@ -93,7 +93,7 @@ def check_handoff_preserves_cloud_project():
 def check_login_destination():
     # Exercise the real email gate transition without connecting to an IdP/store.
     from ui import constants
-    env = {"LOAD_FORGE_SAAS_ENABLED": "true", "LOAD_FORGE_SAAS_BACKEND": "memory", "LOAD_FORGE_AUTH_REQUIRED": "true", "LOAD_FORGE_AUTH_BYPASS": "false", "LOAD_FORGE_ALLOWED_EMAILS": ""}
+    env = {"LOAD_FORGE_SAAS_ENABLED": "true", "LOAD_FORGE_SAAS_BACKEND": "memory", "LOAD_FORGE_AUTH_REQUIRED": "true", "LOAD_FORGE_AUTH_BYPASS": "false", "LOAD_FORGE_ALLOWED_EMAILS": "", "LOAD_FORGE_GUEST_ACCESS": "false"}
     with patch.dict(os.environ, env):
         at = app({"view": "box-design", "preset": "Beyma 12CMV2", "vb": "42", "load": "sealed"})
         assert "driver_fs_hz" not in at.session_state.filtered_state

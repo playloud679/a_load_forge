@@ -16,6 +16,7 @@ import acoustics as _acoustics
 from . import constants as _constants
 from . import finder as _finder
 from . import projects as _projects
+from . import account as _account
 from . import runtime as _runtime
 from . import styles as _styles
 
@@ -119,6 +120,9 @@ def _render_engine_only_topologies_note() -> None:
 
 def _select_workspace(workspace: str) -> None:
     """Select a workspace from tabs or action buttons."""
+    if _runtime._GUEST and workspace in {"Bass Match", "Manage Projects"}:
+        _account.invite_guest("bass_match" if workspace == "Bass Match" else "projects")
+        return
     if workspace in {"Manage Projects", "Bass Match", "Box Design", "Catalog Maintenance", "User Management"}:
         st.session_state["workspace_mode"] = workspace
         if workspace in {"Bass Match", "Box Design"}:

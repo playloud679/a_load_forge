@@ -85,34 +85,81 @@ def check_memory_store_exclusions():
     assert len(store.list_events(since=_T0)) == 1
 
 
-def check_gate_to_signup_keeps_anonymous_id():
+def _run(at):
+    """Run, then re-assert the test environment: a developer's local
+    .streamlit/secrets.toml injects root keys (e.g. an auth bypass) into
+    os.environ the first time Streamlit loads secrets."""
+    at.run()
+    os.environ.update(_SAAS_ENV)
+    return at
+
+
+def check_guest_save_to_signup_keeps_design_and_id():
     from ui import constants
 
     ua._SHARED_MEMORY_STORE._events.clear()
     with patch.dict(os.environ, _SAAS_ENV):
         at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
-        at.query_params.update({"view": "box-design", "lf_aid": "u_portal123"})
-        at.run()
+        at.query_params.update({"view": "bass-match", "preset": "Beyma 12CMV2", "lf_aid": "u_portal123"})
+        _run(at)
         assert not at.exception, at.exception
-        from ui import navigation
-        # The id must ride the 10-minute return cookie across the OIDC redirect.
-        assert "lf_aid" in navigation.DESTINATION_KEYS
-        assert "lf_aid" in at.query_params
-        at.run()  # a rerun on the gate must not duplicate the event
         store = ua._SHARED_MEMORY_STORE  # ui_app may have hot-reloaded the module
+        guest = [e for e in store._events if e["event"] == "guest_session"]
+        # A guest lands on a result, never on a sign-in wall, even from view=bass-match.
+        assert guest[0]["anon_id"] == "u_portal123"
+        assert at.session_state["workspace_mode"] == "Box Design"
+        assert at.session_state["driver_preset_name"] == "Beyma 12CMV2"
+        assert not [e for e in store._events if e["event"] == "auth_gate_view"]
+        at.session_state["project_name"] = "My Beyma sub"
+        at.button(key="guest_save_btn").click()
+        _run(at)
+        assert not at.exception, at.exception
         gate = [e for e in store._events if e["event"] == "auth_gate_view"]
-        assert len(gate) == 1 and gate[0]["anon_id"] == "u_portal123", gate
-        assert gate[0]["props"]["view"] == "box-design"
+        assert len(gate) == 1 and gate[0]["props"]["reason"] == "save", gate
+        from ui import navigation
+        for key in ("d", "name", "lf_aid"):
+            assert key in navigation.DESTINATION_KEYS and key in at.query_params, key
+        assert at.query_params["name"] in ("My Beyma sub", ["My Beyma sub"])
         at.session_state[constants._LOCAL_ACCOUNT_SESSION_KEY] = {
             "sub": "new-user", "email": "new.user@example.invalid", "name": "New user"}
-        at.run()
+        _run(at)
         assert not at.exception, at.exception
         assert "lf_aid" not in at.query_params, "Signed-in URLs must not carry the anonymous id"
-    # A local secrets.toml may swap in a development identity; the contract is
-    # that whoever signs in keeps the portal's anonymous id.
+        assert at.session_state["project_name"] == "My Beyma sub"
+        assert at.session_state["driver_preset_name"] == "Beyma 12CMV2", "the guest's design is kept"
+        assert "name" not in at.query_params
     names = [e["event"] for e in store._events if e["email"]]
     assert names.count("session_start") == 1 and names.count("signup_completed") == 1, names
     assert all(e["anon_id"] == "u_portal123" for e in store._events)
+
+
+def check_guest_is_invited_not_charged_for_bass_match():
+    with patch.dict(os.environ, _SAAS_ENV):
+        at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
+        at.query_params.update({"preset": "Beyma 12CMV2"})
+        _run(at)
+        assert not at.exception, at.exception
+        store = ua._SHARED_MEMORY_STORE
+        assert any(e["event"] == "guest_session" for e in store._events)
+        assert at.session_state["workspace_mode"] == "Box Design"
+        # Clicking the Bass Match tab keeps the guest (and their design) in Box Design.
+        tab = next(b for b in at.button if (b.key or "").startswith("workspace_tab_button_")
+                   and "bass" in b.key)
+        tab.click()
+        _run(at)
+        assert not at.exception, at.exception
+        assert at.session_state["workspace_mode"] == "Box Design"
+        assert at.session_state["driver_preset_name"] == "Beyma 12CMV2"
+        assert at.button(key="guest_invite_sign_in_bass_match") is not None
+        assert "finder_run_search_main" not in [b.key for b in at.button]
+        at.button(key="guest_invite_sign_in_bass_match").click()
+        _run(at)
+        assert any(e["event"] == "auth_gate_view" and e["props"]["reason"] == "bass_match"
+                   for e in store._events)
+        at.button(key="continue_as_guest").click()
+        _run(at)
+        assert not at.exception, at.exception
+        assert at.session_state["driver_preset_name"] == "Beyma 12CMV2", "design survives the sign-in page"
 
 
 def check_admin_console_requires_admin():
@@ -201,3 +248,45 @@ def check_live_feed_visitor_summaries():
     assert bounce.entry_page == "/drivers/lowther-pm2a"
     assert keen.reached_studio and keen.last_event == "app_open_clicked"
     assert [v.visitor for v in ua.visitor_summaries(rows)] == ["u_keen", "u_bounce"]
+
+
+def check_alternatives_similarity_is_pure_and_dedupes():
+    from types import SimpleNamespace as NS
+
+    from ui import alternatives as alt
+
+    features = {
+        "Beyma 12CMV2": (12.0, 38.0, 0.33, 95.0, 5.0),
+        "WEB: SICA 12 Cx 3 PL": (12.0, 40.0, 0.35, 90.0, 4.0),
+        "LSDB: SICA 12 Cx 3 PL": (12.0, 40.0, 0.35, 90.0, 4.0),   # same unit, other source
+        "Tiny 4": (4.0, 80.0, 0.5, 5.0, 3.0),
+        "No Xmax 12": (12.0, 38.5, 0.34, 94.0, 0.0),
+    }
+    picked = alt.similar_driver_names("Beyma 12CMV2", features, limit=5)
+    assert len(picked) == 2 and picked[0].endswith("SICA 12 Cx 3 PL") and picked[1] == "Tiny 4", picked
+    sealed = alt.similar_driver_names("Beyma 12CMV2", features, limit=5, needs_xmax=False)
+    assert sealed[0] == "No Xmax 12"
+    assert alt.similar_driver_names("Unknown", features) == []
+    assert alt.box_total_volume_l("Bass reflex", NS(vb_l=42.0)) == 42.0
+    assert alt.box_total_volume_l("DCCAV", NS(vh_l=10.0, vl_l=15.0)) == 25.0
+    assert alt.box_total_volume_l("Infinite baffle", NS()) is None
+
+
+def check_guest_sees_alternatives_on_landing():
+    with patch.dict(os.environ, _SAAS_ENV):
+        at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=90)
+        at.query_params.update({"preset": "Beyma 12CMV2", "vb": "42", "fb": "30"})
+        _run(at)
+        assert not at.exception, at.exception
+        opens = [b for b in at.button if (b.key or "").startswith("lf_alt_open_")]
+        assert 1 <= len(opens) <= 5, [b.key for b in at.button]
+        assert at.button(key="lf_alt_full_search") is not None
+        store = ua._SHARED_MEMORY_STORE
+        assert any(e["event"] == "alternatives_shown" for e in store._events)
+        tabs_before = len(at.session_state["design_comparison_tabs"]) if "design_comparison_tabs" in at.session_state else 0
+        opens[0].click()
+        _run(at)
+        assert not at.exception, at.exception
+        assert any(e["event"] == "alternative_opened" for e in store._events)
+        assert "batch_pending_result" not in at.session_state, "the opened alternative was applied"
+        del tabs_before

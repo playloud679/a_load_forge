@@ -5733,6 +5733,9 @@ def _check_ui_email_required_without_guest_access():
         "LOAD_FORGE_SAAS_ENABLED": "true",
         "LOAD_FORGE_SAAS_BACKEND": "memory",
         "LOAD_FORGE_ANONYMOUS_ACCESS": "true",
+        # Guest Box Design is a separate, explicit mode (docs/ui/account.md);
+        # with it off, the retired anonymous flag must still not open the app.
+        "LOAD_FORGE_GUEST_ACCESS": "false",
         "LOAD_FORGE_AUTH_REQUIRED": None,
         "LOAD_FORGE_AUTH_BYPASS": None,
         "LOAD_FORGE_LOCAL_ACCOUNTS": None,
@@ -13155,7 +13158,9 @@ test("UI portal login preserves requested driver and workspace", check_login_des
 
 
 from test_usage_analytics import (
-    check_admin_console_requires_admin, check_event_vocabulary, check_gate_to_signup_keeps_anonymous_id,
+    check_admin_console_requires_admin, check_event_vocabulary, check_guest_save_to_signup_keeps_design_and_id,
+    check_guest_is_invited_not_charged_for_bass_match, check_alternatives_similarity_is_pure_and_dedupes,
+    check_guest_sees_alternatives_on_landing,
     check_memory_store_exclusions, check_traction_excludes_internal_traffic,
     check_live_feed_merges_and_filters, check_ui_live_feed_tab_renders, check_live_feed_visitor_summaries,
 )
@@ -13165,7 +13170,10 @@ test("UI usage analytics admin Live tab renders the feed", check_ui_live_feed_ta
 test("Usage analytics rejects unknown events and bounds properties", check_event_vocabulary)
 test("Usage analytics traction excludes admin and test traffic", check_traction_excludes_internal_traffic)
 test("Usage analytics memory store exclusions and time filter", check_memory_store_exclusions)
-test("UI usage analytics keeps the portal anonymous id from gate to signup", check_gate_to_signup_keeps_anonymous_id, group="ui")
+test("UI usage analytics guest lands on Box Design; Save carries design, name and id through sign-up", check_guest_save_to_signup_keeps_design_and_id, group="ui")
+test("UI usage analytics guest gets a sign-in invite, not a free full Bass Match", check_guest_is_invited_not_charged_for_bass_match, group="ui")
+test("Usage analytics alternatives pick similar, de-duplicated drivers and box volume", check_alternatives_similarity_is_pure_and_dedupes)
+test("UI usage analytics guest sees and opens Bass Match alternatives on landing", check_guest_sees_alternatives_on_landing, group="ui")
 test("UI User Management is restricted to the administrator", check_admin_console_requires_admin, group="ui")
 
 from test_repository_contracts import (

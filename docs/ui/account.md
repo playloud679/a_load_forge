@@ -60,3 +60,32 @@ recreating that identity on the next rerun.
 
 OIDC sign-in preserves the portal destination through the short-lived navigation
 cookie managed by [navigation](navigation.md); authentication itself is unchanged.
+
+## Guest mode (`LOAD_FORGE_GUEST_ACCESS`, default on)
+
+A signed-out visitor is a **guest** (`_runtime._GUEST = True`), not the local
+demo user: `_get_current_user_account()` returns `None`, so guests never share
+the local account or its credits and never reach the full Bass Match.
+
+- Guests land in Box Design (portal `view=bass-match`/`projects` included) with
+  a non-blocking invite (`invite_guest`, `render_guest_sign_in_invite`); the
+  Bass Match and Projects tabs route through `state._select_workspace`, which
+  keeps the guest in Box Design and shows the invite instead.
+- `request_sign_in(reason)` (`save`, `bass_match`, `projects`, `account`)
+  opens the sign-in page with reason-specific copy and a "Back to my design"
+  button. The page renders no design widgets, and Streamlit drops the state of
+  widgets a run does not render, so the design is snapshotted
+  (`state._snapshot_design_state`) and restored on return or on same-session
+  email sign-in.
+- **Save → sign in → saved**: for `save`, the design (`d`, the share-link
+  payload, ~1.3 kB) and the project `name` also go into the URL, hence into the
+  10-minute return cookie across the Google redirect. The first signed-in run
+  applies them and forces an autosave (`app.main`), then drops `name` from the URL.
+- `_get_current_user_account()` memoises per **session** in `st.session_state`
+  (cleared by `ui_app.py` right after resolving the user, before the first read
+  of each run). It used a
+  process-wide `functools.cache`, which could hand one user's account to a
+  concurrent session.
+
+Usage events: `guest_session`, `sign_in_invite_view`, `auth_gate_view`
+(`props.reason`) — see [usage analytics](../usage_analytics.md).

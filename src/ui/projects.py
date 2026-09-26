@@ -1382,30 +1382,38 @@ def _render_main_account_header() -> None:
                 st.text_input("Project name", value=st.session_state["project_name"], key=name_key, max_chars=80)
                 st.button("Rename", key="action_project_header_rename", on_click=_rename_project_from_header, args=(name_key,))
         with save_col:
-            _render_cloud_persistence_status()
+            if _runtime._GUEST:
+                st.button("Save · Sign in", key="guest_save_btn", type="primary", width="stretch",
+                          help="Sign in with Google to save this design to your account. It comes with you.",
+                          on_click=_account.request_sign_in, args=("save",))
+            else:
+                _render_cloud_persistence_status()
         with vis_col:
-            try:
-                publications = _project_publications()
-                visible = [p for p in publications if p.visibility != "unpublished"]
-                current = next((p for p in visible if p.visibility == "public"), visible[0] if visible else None)
-                visibility = current.visibility.capitalize() if current else "Private"
-                with st.popover(f"{visibility}", width="stretch"):
-                    st.markdown(f"**Project Visibility · {visibility}**")
-                    st.caption("Private — Only you can access this project.\n\nUnlisted — Anyone with the link can view it.\n\nPublic — Visible in Community / Explore.")
-                    visibility_key = f"temp_project_visibility_{st.session_state.get('_cloud_project_id', 'draft')}"
-                    st.selectbox("Visibility", ["Private", "Unlisted", "Public"], index=["Private", "Unlisted", "Public"].index(visibility), key=visibility_key)
-                    st.button("Apply visibility", key="action_project_visibility", disabled=not (_runtime._SAAS_SETTINGS.enabled and _runtime._CURRENT_SAAS_USER), on_click=_apply_header_visibility, args=(visibility_key,))
-                    if current:
-                        st.divider()
-                        st.link_button("View shared project page", _public_project_url(current.publication_id))
-                    if current and _publication_is_stale(current):
-                        st.divider()
-                        st.caption("Changes not published")
-                        st.session_state["_current_project_visibility"] = visibility
-                        st.button("Update public version", key="action_project_publish_update", on_click=_apply_header_visibility, args=("_current_project_visibility",), kwargs={"update": True})
-            except Exception:
-                _runtime.logger.exception("Project visibility unavailable")
-                st.error("Could not update or read project visibility. Please retry.")
+            if _runtime._GUEST:
+                st.caption("Guest · not saved")
+            else:
+                try:
+                    publications = _project_publications()
+                    visible = [p for p in publications if p.visibility != "unpublished"]
+                    current = next((p for p in visible if p.visibility == "public"), visible[0] if visible else None)
+                    visibility = current.visibility.capitalize() if current else "Private"
+                    with st.popover(f"{visibility}", width="stretch"):
+                        st.markdown(f"**Project Visibility · {visibility}**")
+                        st.caption("Private — Only you can access this project.\n\nUnlisted — Anyone with the link can view it.\n\nPublic — Visible in Community / Explore.")
+                        visibility_key = f"temp_project_visibility_{st.session_state.get('_cloud_project_id', 'draft')}"
+                        st.selectbox("Visibility", ["Private", "Unlisted", "Public"], index=["Private", "Unlisted", "Public"].index(visibility), key=visibility_key)
+                        st.button("Apply visibility", key="action_project_visibility", disabled=not (_runtime._SAAS_SETTINGS.enabled and _runtime._CURRENT_SAAS_USER), on_click=_apply_header_visibility, args=(visibility_key,))
+                        if current:
+                            st.divider()
+                            st.link_button("View shared project page", _public_project_url(current.publication_id))
+                        if current and _publication_is_stale(current):
+                            st.divider()
+                            st.caption("Changes not published")
+                            st.session_state["_current_project_visibility"] = visibility
+                            st.button("Update public version", key="action_project_publish_update", on_click=_apply_header_visibility, args=("_current_project_visibility",), kwargs={"update": True})
+                except Exception:
+                    _runtime.logger.exception("Project visibility unavailable")
+                    st.error("Could not update or read project visibility. Please retry.")
         if nav_upgrade is not None and acc:
             with nav_upgrade:
                 if acc.plan == "free":
@@ -1435,7 +1443,8 @@ def _render_main_account_header() -> None:
                 key="sidebar_manage_projects_btn",
                 type="secondary",
                 width="stretch",
-                on_click=_open_manage_projects_workspace,
+                on_click=_account.request_sign_in if _runtime._GUEST else _open_manage_projects_workspace,
+                args=("projects",) if _runtime._GUEST else None,
             )
         with nav_comm:
             st.button(
@@ -1452,6 +1461,11 @@ def _render_main_account_header() -> None:
                     st.markdown(f"**{html.escape(user_label)}**")
                     st.caption(f"{acc.plan.upper()} · {acc.credits_balance:,} credits")
                     _render_billing_action_button(acc)
+                elif _runtime._GUEST:
+                    st.markdown("**Guest**")
+                    st.caption("Box Design is free without an account. Sign in to save designs and run Bass Match.")
+                    st.button("Sign in — free", key="guest_account_sign_in", type="primary", width="stretch",
+                              on_click=_account.request_sign_in, args=("account",))
                 else:
                     st.markdown("**Guest session**")
                     st.caption("Local browser mode · Projects stored in browser memory.")
@@ -2352,16 +2366,18 @@ def _render_traction_report(usage_store, accounts, excluded: frozenset[str]) -> 
         "Mark test accounts in the Accounts tab. Activity before event tracking was enabled is not shown."
     )
     funnel = report.funnel()
-    top = max(funnel[0][1], report.signups, 1)
+    anonymous_rows = 2  # guest visitors, opened sign-in: counted by anonymous id
+    top = max(max(value for _, value in funnel), 1)
     st.markdown("#### Funnel")
-    for label, value in funnel:
-        base = report.signups if label != funnel[0][0] and report.signups else top
-        share = f"{value / base:.0%}" if base else "–"
+    for index, (label, value) in enumerate(funnel):
         c_label, c_bar, c_val = st.columns([3, 5, 1.2], vertical_alignment="center")
         c_label.markdown(label)
         c_bar.progress(min(1.0, value / top))
-        c_val.markdown(f"**{value}** · {share}" if label != funnel[0][0] else f"**{value}**")
-    st.caption("Percentages after the first row are relative to sign-ups.")
+        if index > anonymous_rows and report.signups:
+            c_val.markdown(f"**{value}** · {value / report.signups:.0%}")
+        else:
+            c_val.markdown(f"**{value}**")
+    st.caption("Percentages are relative to sign-ups; the first two rows count anonymous visitors.")
 
     c_loads, c_drivers = st.columns(2)
     with c_loads:

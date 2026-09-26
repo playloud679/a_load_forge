@@ -48,7 +48,8 @@ Bridges `st.session_state` and the acoustic model objects.
 `_render_workspace_tabs` renders two full-image tabs (Bass Match and Box
 Design) in the technical sidebar, driven by `_workspace_tab_styles()` and the
 `_WORKSPACE_TAB_IMAGES` assets. Selection preserves the project identity.
-`_select_workspace` records the engineering choice in
+`_select_workspace` keeps guests out of Bass Match and Projects (it calls
+`account.invite_guest` instead; see [account](account.md)). Otherwise it records the engineering choice in
 `_last_engineering_workspace`; `_resume_last_engineering_workspace` returns it
 (session memory first, then the most recent cloud project) so a returning user
 resumes engineering work instead of landing on Projects. The hidden

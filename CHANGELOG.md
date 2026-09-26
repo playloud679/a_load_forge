@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.21.0 (2026-09-26)
+
+- **Box Design without sign-in (guest mode, `LOAD_FORGE_GUEST_ACCESS`, default on)**: a signed-out visitor lands straight on a computed Box Design — the portal driver and box included, also from `view=bass-match` links — instead of the sign-in wall. Guests have no account, credits or persistence; they never share the local demo account.
+- **Save · Sign in keeps the work**: the guest's design (`d`) and project name ride the 10-minute return cookie across Google sign-in; the first signed-in run restores them and saves the project. Same-session email sign-in and "Back to my design" restore a snapshot (the sign-in page renders no design widgets, whose state Streamlit would drop).
+- **Bass Match and Projects for guests**: a non-blocking invite above Box Design ("Sign in — free" / "Not now") instead of a wall; tabs and portal links keep the guest in Box Design.
+- **Similar drivers in this box** (new `src/ui/alternatives.py`): under every Box Design, the best 5 of the ~25 most similar catalog drivers (size, Fs, Qts, Vas; duplicates across sources collapsed) in the same load and volume, with F3, peak SPL, excursion, price and **Open**. Guests get "Search all N drivers — sign in free". ~1 ms per driver, cached.
+- **Fix — current account memo could cross sessions**: `_get_current_user_account` used a process-wide `functools.cache`; concurrent sessions could briefly read another user's account (plan, credits, admin flag). It now memoises in `st.session_state`, cleared once per run.
+- Analytics: new events `guest_session`, `sign_in_invite_view`, `alternatives_shown`, `alternative_opened`; `auth_gate_view` carries the reason; Traction funnel starts with guest visitors and sign-in openers.
+- Validation: `make test` 113 passed; `make test-ui` 113 passed, 1 pre-existing failure unchanged on `main` ("Bass Match candidate pool starts open…").
+
 ## 0.20.2 (2026-09-26)
 
 - **Live tab reads one row per visitor**: last seen, arrival (Google, direct…), entry page, pages viewed, reached the Studio, signed in, last event; with totals (visitors · reached the Studio · left after one page). "Follow one visitor" keeps the event-by-event path. New pure `usage_analytics.visitor_summaries`.
