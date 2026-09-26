@@ -13,11 +13,20 @@ credits) stays behind sign-in.
   bandpass loads require a published Xmax.
 - `box_total_volume_l(load_type, box)` — same rule as the summary strip
   (Infinite baffle: none, so no preview).
-- Ranking: `ranking.rank_preset_row` without optimizer goals (suggested
-  alignment at that volume, 10–500 Hz, 160 points), sorted by
-  `sort_ranked_rows`; ~1 ms per driver; `st.cache_data` per
-  (pool, load, volume, voltage), 24 h. Only drivers visible to users
-  (`catalog._available_driver_preset_names`) are considered.
+- Ranking: **the same engine and settings as the full Bass Match** —
+  `ranking.rank_preset_row` with `constants._FINDER_DEFAULTS` (objective "Max
+  extension", ripple ≤ 3 dB, excursion ≤ Xmax, group delay ≤ 30 ms, standard
+  search profile, 10–300 Hz / 240 points) and the visitor's total box volume as
+  the volume limit (`_bass_match_goals`). Each driver gets its own optimised
+  box (shown as "Box": volume, Fb). 0.2–1 s for the pool depending on the load;
+  `st.cache_data` per (pool, load, volume, voltage, current driver), 24 h. Only
+  drivers visible to users (`catalog._available_driver_preset_names`) are
+  considered. Guests get the same result quality as signed-in users; only the
+  pool (≈25 similar drivers vs the whole catalog with filters) differs.
+- Duplicates: after ranking, rows sharing a rounded T/S signature
+  (`_ts_signature`: Fs to 0.5 Hz, Qts to 0.01, Vas to 0.5 L) keep only the best
+  one, and copies of the current driver from other sources are dropped
+  (`dedupe_rows`).
 - **Open** reuses Bass Match's path (`batch_pending_result`), adding the driver
   as a design tab. The footer offers the full Bass Match: guests get
   "Search all N drivers — sign in free" (`account.request_sign_in("bass_match")`).

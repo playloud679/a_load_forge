@@ -211,15 +211,68 @@ def context_driver(size_in: float | None, brand_slug: str | None) -> str | None:
                                  size_in=size_in, brand_slug=brand_slug)
 
 
+def _ts_signature(fs_hz: float, qts: float, vas_l: float) -> tuple[float, float, float]:
+    """Rounded T/S triple: one unit listed by several sources under different
+    names ("FaitalPRO 12PR300 (4Ω)" / "WEB: FaitalPRO 12PR300-4P") shares it."""
+    return (round(float(fs_hz) * 2) / 2, round(float(qts), 2), round(float(vas_l) * 2) / 2)
+
+
+def dedupe_rows(rows: list[dict], exclude_signature: tuple | None, signatures: dict[str, tuple]) -> list[dict]:
+    """Keep the first (best-ranked) row per T/S signature; drop copies of the current driver."""
+    seen = {exclude_signature} if exclude_signature else set()
+    kept = []
+    for row in rows:
+        signature = signatures.get(str(row.get("Driver", "")))
+        if signature is not None and signature in seen:
+            continue
+        if signature is not None:
+            seen.add(signature)
+        kept.append(row)
+    return kept
+
+
+def _bass_match_goals(volume_l: float) -> Any:
+    """Exactly the full Bass Match defaults (constants._FINDER_DEFAULTS), with
+    the visitor's box volume as the volume limit."""
+    defaults = _constants._FINDER_DEFAULTS
+    return _acoustics.OptimizationGoals(
+        objective=_constants._OPT_OBJECTIVE_LABELS[defaults["finder_objective"]],
+        max_total_volume_l=float(volume_l),
+        max_ripple_db=float(defaults["finder_max_ripple_db"]),
+        max_excursion_ratio=float(defaults["finder_excursion_ratio"]),
+        max_group_delay_ms=float(defaults.get("finder_max_gd_ms", 0.0)) or None,
+        min_spl_db=float(defaults.get("finder_min_spl_db", 0.0)) or None,
+        ripple_max_freq_hz=float(defaults.get("finder_max_ripple_freq_hz", 0.0)) or None,
+    )
+
+
 @st.cache_data(show_spinner=False, max_entries=512, ttl=24 * 3600)
-def _ranked_alternatives(pool: tuple[str, ...], load_type: str, volume_l: float, voltage_v: float) -> list[dict]:
+def _ranked_alternatives(
+    pool: tuple[str, ...], load_type: str, volume_l: float, voltage_v: float, current: str = "",
+) -> list[dict]:
+    """Same engine and settings as the full Bass Match (optimizer, standard search
+    profile, default goals, 10–300 Hz / 240 points), on the similar-driver pool."""
+    defaults = _constants._FINDER_DEFAULTS
+    goals = _bass_match_goals(volume_l)
     rows = [
         row for row in (
-            _ranking.rank_preset_row(name, load_type, volume_l, voltage_v, 10.0, 500.0, 160)
+            _ranking.rank_preset_row(
+                name, load_type, volume_l, voltage_v,
+                float(defaults["finder_f_min"]), float(defaults["finder_f_max"]), int(defaults["finder_points"]),
+                goals, "Single driver", defaults["finder_search_profile"],
+            )
             for name in pool
         ) if row
     ]
-    return _ranking.sort_ranked_rows(rows)[:SHOWN]
+    signatures = {}
+    for name in (*pool, current):
+        try:
+            ts = _acoustics.get_driver_preset(name)
+            signatures[name] = _ts_signature(ts.fs_hz, ts.qts, ts.vas_l)
+        except Exception:
+            continue
+    ranked = dedupe_rows(_ranking.sort_ranked_rows(rows), signatures.get(current), signatures)
+    return ranked[:SHOWN]
 
 
 _ON_TOP_KEY = "_lf_alternatives_on_top"
@@ -241,6 +294,17 @@ def _open_alternative(row: dict, load_type: str, voltage_v: float) -> None:
     _usage.track("alternative_opened", {"driver": row.get("Driver", ""), "load_type": load_type})
     # Same path as Bass Match's "Open in Box Design" (applied on the next run).
     st.session_state["batch_pending_result"] = {"row": row, "load_type": load_type, "voltage_v": voltage_v}
+
+
+def _box_label(row: dict) -> str:
+    """Optimised box of one Bass Match row: net volume and tuning when it has one."""
+    volumes = [row.get(key) for key in ("Vb L", "Vh L", "Vl L", "Vs L", "Vp L", "Vr L", "V1 L", "V2 L", "V3 L")]
+    finite = [float(v) for v in volumes if isinstance(v, (int, float)) and math.isfinite(float(v)) and v > 0]
+    volume = _fmt(finite[0] if row.get("Vb L") in finite else sum(finite), 1, "L") if finite else "–"
+    tuning = row.get("Fb Hz")
+    if isinstance(tuning, (int, float)) and math.isfinite(float(tuning)):
+        return f"{volume} · Fb {float(tuning):.0f} Hz"
+    return volume
 
 
 def _fmt(value: Any, digits: int, unit: str) -> str:
@@ -284,7 +348,7 @@ def render_alternatives(driver_name: str, load_type: str, box: Any, voltage_v: f
             info = _acoustics.driver_preset_info(driver_name)
             features[driver_name] = (info.size_in, ts.fs_hz, ts.qts, ts.vas_l, ts.xmax_mm)
         pool = similar_driver_names(driver_name, features, needs_xmax=load_type not in ("Sealed",))
-        rows = _ranked_alternatives(tuple(pool), load_type, round(volume_l, 1), round(float(voltage_v), 2))
+        rows = _ranked_alternatives(tuple(pool), load_type, round(volume_l, 1), round(float(voltage_v), 2), driver_name)
     except Exception:
         _runtime.logger.exception("Alternatives preview failed")
         return
@@ -299,11 +363,12 @@ def render_alternatives(driver_name: str, load_type: str, box: Any, voltage_v: f
             c_title.markdown(f"**Bass Match · drivers similar to {driver_name} in this {volume_l:.0f} L {label}**")
             c_hide.button("Hide", key="lf_alt_hide", width="stretch", on_click=_dismiss_on_top)
         else:
-            st.markdown(f"**Similar drivers in this {volume_l:.0f} L {label}** · Bass Match preview")
+            st.markdown(f"**Bass Match · similar drivers, each optimised for a {volume_l:.0f} L {label}**")
         for index, row in enumerate(rows):
-            c_name, c_f3, c_spl, c_exc, c_price, c_open = st.columns(
-                [3.2, 1, 1, 1.1, 1.1, 1], vertical_alignment="center")
+            c_name, c_box, c_f3, c_spl, c_exc, c_price, c_open = st.columns(
+                [3.0, 1.3, 1, 1, 1, 1, 0.9], vertical_alignment="center")
             c_name.markdown(str(row.get("Driver", "")))
+            c_box.caption(_box_label(row))
             c_f3.markdown(f"F3 **{_fmt(row.get('F3 Hz'), 1, 'Hz')}**")
             c_spl.markdown(_fmt(row.get("Peak dB"), 1, "dB"))
             c_exc.markdown(_fmt(row.get("Max excursion mm"), 1, "mm"))

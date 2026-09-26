@@ -379,3 +379,21 @@ def check_size_hub_and_contextless_guest_land_on_a_relevant_driver():
         assert not bare.exception, bare.exception
         assert bare.session_state["driver_preset_name"] == alt.context_driver(6.5, None)
         assert bare.session_state["load_type"] == "Bass reflex", "no DCAAV article example for guests"
+
+
+def check_alternatives_use_full_bass_match_settings_and_dedupe_by_ts():
+    from ui import alternatives as alt, constants
+
+    goals = alt._bass_match_goals(42.0)
+    d = constants._FINDER_DEFAULTS
+    assert goals.max_total_volume_l == 42.0
+    assert goals.max_ripple_db == d["finder_max_ripple_db"]
+    assert goals.max_excursion_ratio == d["finder_excursion_ratio"]
+    assert goals.max_group_delay_ms == d["finder_max_gd_ms"]
+    assert goals.objective == constants._OPT_OBJECTIVE_LABELS[d["finder_objective"]]
+    sig = {"A (4Ω)": (40.0, 0.4, 50.0), "WEB: A-4P": (40.0, 0.4, 50.0), "B": (35.0, 0.5, 60.0),
+           "Current.ai": (30.0, 0.3, 70.0)}
+    rows = [{"Driver": "A (4Ω)"}, {"Driver": "WEB: A-4P"}, {"Driver": "Current.ai"}, {"Driver": "B"}]
+    assert [r["Driver"] for r in alt.dedupe_rows(rows, (30.0, 0.3, 70.0), sig)] == ["A (4Ω)", "B"]
+    assert alt._box_label({"Vb L": 42.0, "Fb Hz": 52.3}) == "42.0 L · Fb 52 Hz"
+    assert alt._box_label({"Vs L": 10.0, "Vp L": 20.0, "Fb Hz": float("nan")}) == "30.0 L"

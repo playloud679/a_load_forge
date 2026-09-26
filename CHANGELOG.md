@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.23.0 (2026-09-26)
+
+- **Guests get full Bass Match quality**: the similar-driver comparison now runs the same engine and settings as the full Bass Match — optimiser, standard search profile, default goals (Max extension, ripple ≤ 3 dB, excursion ≤ Xmax, group delay ≤ 30 ms), 10–300 Hz / 240 points — with the visitor's box volume as the limit. Each alternative shows its own optimised box (volume, Fb). 0.2–1 s per pool, cached. Only the pool differs from the signed-in search (~25 similar drivers vs the whole catalog with filters).
+- **No duplicates**: the same unit listed by several sources under different names ("FaitalPRO 12PR300 (4Ω)" / "WEB: FaitalPRO 12PR300-4P") and copies of the current driver ("WEB: Beyma 12CMV2.ai") are collapsed by T/S signature.
+- Validation: `make test` 116 passed; usage analytics 16 passed; `make test-ui` passed except the pre-existing "Bass Match candidate pool starts open…".
+
 ## 0.22.0 (2026-09-26)
 
 - **Portal hubs land on a relevant driver**: `?size=3` / `?brand=tang-band` (portal size and brand hubs, portal 1.13.0) open Box Design on a representative driver of that class in bass reflex — reference brands preferred, then first-party records, closest to the class median Fs/Qts/Vas — with the Bass Match comparison on top (`compare=1`). The first real Google visitor came from `/drivers/size/3` and got the unrelated KEF DCAAV example.
